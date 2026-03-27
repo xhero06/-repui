@@ -1,1528 +1,1823 @@
-local lib = {RainbowColorValue = 0, HueSelectionPosition = 0}
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-local PresetColor = Color3.fromRGB(44, 120, 224)
-local CloseBind = Enum.KeyCode.RightControl
+repeat task.wait() until game:IsLoaded()
+local GuiLibrary
+local baseDirectory = (shared.VapePrivate and "vapeprivate/" or "vape/")
+local vapeInjected = true
+local oldRainbow = false
+local errorPopupShown = false
+local redownloadedAssets = false
+local profilesLoaded = false
+local teleportedServers = false
+local gameCamera = workspace.CurrentCamera
+local textService = game:GetService("TextService")
+local playersService = game:GetService("Players")
+local isfile = isfile or function(file)
+	local suc, res = pcall(function() return readfile(file) end)
+	return suc and res ~= nil
+end
+local setidentity = syn and syn.set_thread_identity or set_thread_identity or setidentity or setthreadidentity or function() end
+local getidentity = syn and syn.get_thread_identity or get_thread_identity or getidentity or getthreadidentity or function() return 0 end
+local getcustomasset = getsynasset or getcustomasset or function(location) return "rbxasset://"..location end
+local queueonteleport = syn and syn.queue_on_teleport or queue_on_teleport or function() end
 
-local ui = Instance.new("ScreenGui")
-ui.Name = "ui"
-ui.Parent = game.CoreGui
-ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-coroutine.wrap(
-    function()
-        while wait() do
-            lib.RainbowColorValue = lib.RainbowColorValue + 1 / 255
-            lib.HueSelectionPosition = lib.HueSelectionPosition + 1
-
-            if lib.RainbowColorValue >= 1 then
-                lib.RainbowColorValue = 0
-            end
-
-            if lib.HueSelectionPosition == 80 then
-                lib.HueSelectionPosition = 0
-            end
-        end
-    end
-)()
-
-local function MakeDraggable(topbarobject, object)
-    local Dragging = nil
-    local DragInput = nil
-    local DragStart = nil
-    local StartPosition = nil
-
-    local function Update(input)
-        local Delta = input.Position - DragStart
-        local pos =
-            UDim2.new(
-                StartPosition.X.Scale,
-                StartPosition.X.Offset + Delta.X,
-                StartPosition.Y.Scale,
-                StartPosition.Y.Offset + Delta.Y
-            )
-        object.Position = pos
-    end
-
-    topbarobject.InputBegan:Connect(
-        function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                Dragging = true
-                DragStart = input.Position
-                StartPosition = object.Position
-
-                input.Changed:Connect(
-                    function()
-                        if input.UserInputState == Enum.UserInputState.End then
-                            Dragging = false
-                        end
-                    end
-                )
-            end
-        end
-    )
-
-    topbarobject.InputChanged:Connect(
-        function(input)
-            if
-                input.UserInputType == Enum.UserInputType.MouseMovement or
-                    input.UserInputType == Enum.UserInputType.Touch
-            then
-                DragInput = input
-            end
-        end
-    )
-
-    UserInputService.InputChanged:Connect(
-        function(input)
-            if input == DragInput and Dragging then
-                Update(input)
-            end
-        end
-    )
+local function displayErrorPopup(text, func)
+	local oldidentity = getidentity()
+	setidentity(8)
+	local ErrorPrompt = getrenv().require(game:GetService("CoreGui").RobloxGui.Modules.ErrorPrompt)
+	local prompt = ErrorPrompt.new("Default")
+	prompt._hideErrorCode = true
+	local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+	prompt:setErrorTitle("Vape")
+	prompt:updateButtons({{
+		Text = "OK",
+		Callback = function() 
+			prompt:_close() 
+			if func then func() end
+		end,
+		Primary = true
+	}}, 'Default')
+	prompt:setParent(gui)
+	prompt:_open(text)
+	setidentity(oldidentity)
 end
 
-function lib:Window(text, preset, closebind)
-    CloseBind = closebind or Enum.KeyCode.RightControl
-    PresetColor = preset or Color3.fromRGB(44, 120, 224)
-    fs = false
-    local Main = Instance.new("Frame")
-    local TabHold = Instance.new("Frame")
-    local TabHoldLayout = Instance.new("UIListLayout")
-    local Title = Instance.new("TextLabel")
-    local TabFolder = Instance.new("Folder")
-    local DragFrame = Instance.new("Frame")
-
-    Main.Name = "Main"
-    Main.Parent = ui
-    Main.AnchorPoint = Vector2.new(0.5, 0.5)
-    Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Main.BorderSizePixel = 0
-    Main.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Main.Size = UDim2.new(0, 0, 0, 0)
-    Main.ClipsDescendants = true
-    Main.Visible = true
-
-    TabHold.Name = "TabHold"
-    TabHold.Parent = Main
-    TabHold.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    TabHold.BackgroundTransparency = 1.000
-    TabHold.Position = UDim2.new(0.0339285731, 0, 0.147335425, 0)
-    TabHold.Size = UDim2.new(0, 107, 0, 254)
-
-    TabHoldLayout.Name = "TabHoldLayout"
-    TabHoldLayout.Parent = TabHold
-    TabHoldLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    TabHoldLayout.Padding = UDim.new(0, 11)
-
-    Title.Name = "Title"
-    Title.Parent = Main
-    Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Title.BackgroundTransparency = 1.000
-    Title.Position = UDim2.new(0.0339285731, 0, 0.0564263314, 0)
-    Title.Size = UDim2.new(0, 200, 0, 23)
-    Title.Font = Enum.Font.GothamSemibold
-    Title.Text = text
-    Title.TextColor3 = Color3.fromRGB(68, 68, 68)
-    Title.TextSize = 12.000
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-
-    DragFrame.Name = "DragFrame"
-    DragFrame.Parent = Main
-    DragFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    DragFrame.BackgroundTransparency = 1.000
-    DragFrame.Size = UDim2.new(0, 560, 0, 41)
-
-    
-    
-    Main:TweenSize(UDim2.new(0, 560, 0, 319), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .6, true)
-    
-
-    MakeDraggable(DragFrame, Main)
-    
-    local uitoggled = false
-    UserInputService.InputBegan:Connect(
-        function(io, p)
-            if io.KeyCode == CloseBind then
-                if uitoggled == false then
-                    Main:TweenSize(UDim2.new(0, 0, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .6, true)
-                    uitoggled = true
-                    wait(.5)
-                    knixhub.Enabled = false
-                else
-                    Main:TweenSize(UDim2.new(0, 560, 0, 319), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .6, true)
-                    knixhub.Enabled = true
-                    uitoggled = false
-                end
-            end
-        end
-    )
-
-    TabFolder.Name = "TabFolder"
-    TabFolder.Parent = Main
-    
-    function lib:ChangePresetColor(toch)
-        PresetColor = toch
-    end
-    
-    function lib:Notification(texttitle,textdesc,textbtn)
-
-        local NotificationHold = Instance.new("TextButton")
-        local NotificationFrame = Instance.new("Frame")
-        local OkayBtn = Instance.new("TextButton")
-        local OkayBtnCorner = Instance.new("UICorner")
-        local OkayBtnTitle = Instance.new("TextLabel")
-        local NotificationTitle = Instance.new("TextLabel")
-        local NotificationDesc = Instance.new("TextLabel")
-
-
-        NotificationHold.Name = "NotificationHold"
-        NotificationHold.Parent = Main
-        NotificationHold.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        NotificationHold.BackgroundTransparency = 1.000
-        NotificationHold.BorderSizePixel = 0
-        NotificationHold.Size = UDim2.new(0, 560, 0, 319)
-        NotificationHold.AutoButtonColor = false
-        NotificationHold.Font = Enum.Font.SourceSans
-        NotificationHold.Text = ""
-        NotificationHold.TextColor3 = Color3.fromRGB(0, 0, 0)
-        NotificationHold.TextSize = 14.000
-        
-        TweenService:Create(
-            NotificationHold,
-            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {BackgroundTransparency = 0.7}
-        ):Play()
-        wait(0.4)
-
-        NotificationFrame.Name = "NotificationFrame"
-        NotificationFrame.Parent = NotificationHold
-        NotificationFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-        NotificationFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        NotificationFrame.BorderSizePixel = 0
-        NotificationFrame.ClipsDescendants = true
-        NotificationFrame.Position = UDim2.new(0.5, 0, 0.498432577, 0)
-        
-        NotificationFrame:TweenSize(UDim2.new(0, 164,0, 193), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .6, true)
-
-        OkayBtn.Name = "OkayBtn"
-        OkayBtn.Parent = NotificationFrame
-        OkayBtn.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-        OkayBtn.Position = UDim2.new(0.0609756112, 0, 0.720207274, 0)
-        OkayBtn.Size = UDim2.new(0, 144, 0, 42)
-        OkayBtn.AutoButtonColor = false
-        OkayBtn.Font = Enum.Font.SourceSans
-        OkayBtn.Text = ""
-        OkayBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-        OkayBtn.TextSize = 14.000
-
-        OkayBtnCorner.CornerRadius = UDim.new(0, 5)
-        OkayBtnCorner.Name = "OkayBtnCorner"
-        OkayBtnCorner.Parent = OkayBtn
-
-        OkayBtnTitle.Name = "OkayBtnTitle"
-        OkayBtnTitle.Parent = OkayBtn
-        OkayBtnTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        OkayBtnTitle.BackgroundTransparency = 1.000
-        OkayBtnTitle.Position = UDim2.new(0.0763888881, 0, 0, 0)
-        OkayBtnTitle.Size = UDim2.new(0, 181, 0, 42)
-        OkayBtnTitle.Font = Enum.Font.Gotham
-        OkayBtnTitle.Text = textbtn
-        OkayBtnTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-        OkayBtnTitle.TextSize = 14.000
-        OkayBtnTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-        NotificationTitle.Name = "NotificationTitle"
-        NotificationTitle.Parent = NotificationFrame
-        NotificationTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        NotificationTitle.BackgroundTransparency = 1.000
-        NotificationTitle.Position = UDim2.new(0.0670731738, 0, 0.0829015523, 0)
-        NotificationTitle.Size = UDim2.new(0, 143, 0, 26)
-        NotificationTitle.Font = Enum.Font.Gotham
-        NotificationTitle.Text = texttitle
-        NotificationTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-        NotificationTitle.TextSize = 18.000
-        NotificationTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-        NotificationDesc.Name = "NotificationDesc"
-        NotificationDesc.Parent = NotificationFrame
-        NotificationDesc.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        NotificationDesc.BackgroundTransparency = 1.000
-        NotificationDesc.Position = UDim2.new(0.0670000017, 0, 0.218999997, 0)
-        NotificationDesc.Size = UDim2.new(0, 143, 0, 91)
-        NotificationDesc.Font = Enum.Font.Gotham
-        NotificationDesc.Text = textdesc
-        NotificationDesc.TextColor3 = Color3.fromRGB(255, 255, 255)
-        NotificationDesc.TextSize = 15.000
-        NotificationDesc.TextWrapped = true
-        NotificationDesc.TextXAlignment = Enum.TextXAlignment.Left
-        NotificationDesc.TextYAlignment = Enum.TextYAlignment.Top
-        
-        OkayBtn.MouseEnter:Connect(function()
-            TweenService:Create(
-                OkayBtn,
-                TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                {BackgroundColor3 = Color3.fromRGB(37,37,37)}
-            ):Play()
-        end)
-
-        OkayBtn.MouseLeave:Connect(function()
-            TweenService:Create(
-                OkayBtn,
-                TweenInfo.new(.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                {BackgroundColor3 = Color3.fromRGB(34, 34, 34)}
-            ):Play()
-        end)
-        
-        OkayBtn.MouseButton1Click:Connect(function()
-            NotificationFrame:TweenSize(UDim2.new(0, 0,0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .6, true)
-        
-            wait(0.4)
-            
-            TweenService:Create(
-                NotificationHold,
-                TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                {BackgroundTransparency = 1}
-            ):Play()
-            
-            wait(.3)
-            
-            NotificationHold:Destroy()
-        end)
-    end
-    local tabhold = {}
-    function tabhold:Tab(text)
-        local TabBtn = Instance.new("TextButton")
-        local TabTitle = Instance.new("TextLabel")
-        local TabBtnIndicator = Instance.new("Frame")
-        local TabBtnIndicatorCorner = Instance.new("UICorner")
-
-        TabBtn.Name = "TabBtn"
-        TabBtn.Parent = TabHold
-        TabBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        TabBtn.BackgroundTransparency = 1.000
-        TabBtn.Size = UDim2.new(0, 107, 0, 21)
-        TabBtn.Font = Enum.Font.SourceSans
-        TabBtn.Text = ""
-        TabBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-        TabBtn.TextSize = 14.000
-
-        TabTitle.Name = "TabTitle"
-        TabTitle.Parent = TabBtn
-        TabTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        TabTitle.BackgroundTransparency = 1.000
-        TabTitle.Size = UDim2.new(0, 107, 0, 21)
-        TabTitle.Font = Enum.Font.Gotham
-        TabTitle.Text = text
-        TabTitle.TextColor3 = Color3.fromRGB(150, 150, 150)
-        TabTitle.TextSize = 14.000
-        TabTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-        TabBtnIndicator.Name = "TabBtnIndicator"
-        TabBtnIndicator.Parent = TabBtn
-        TabBtnIndicator.BackgroundColor3 = PresetColor
-        TabBtnIndicator.BorderSizePixel = 0
-        TabBtnIndicator.Position = UDim2.new(0, 0, 1, 0)
-        TabBtnIndicator.Size = UDim2.new(0, 0, 0, 2)
-
-        TabBtnIndicatorCorner.Name = "TabBtnIndicatorCorner"
-        TabBtnIndicatorCorner.Parent = TabBtnIndicator
-        
-        coroutine.wrap(
-            function()
-                while wait() do
-                    TabBtnIndicator.BackgroundColor3 = PresetColor     
-                end
-            end
-        )()
-        
-
-        local Tab = Instance.new("ScrollingFrame")
-        local TabLayout = Instance.new("UIListLayout")
-        
-        Tab.Name = "Tab"
-        Tab.Parent = TabFolder
-        Tab.Active = true
-        Tab.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        Tab.BackgroundTransparency = 1.000
-        Tab.BorderSizePixel = 0
-        Tab.Position = UDim2.new(0.31400001, 0, 0.147, 0)
-        Tab.Size = UDim2.new(0, 373, 0, 254)
-        Tab.CanvasSize = UDim2.new(0, 0, 0, 0)
-        Tab.ScrollBarThickness = 3
-        Tab.Visible = false
-        
-        TabLayout.Name = "TabLayout"
-        TabLayout.Parent = Tab
-        TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        TabLayout.Padding = UDim.new(0, 6)
-        
-        if fs == false then
-            fs = true
-            TabBtnIndicator.Size = UDim2.new(0, 13, 0, 2)
-            TabTitle.TextColor3 = Color3.fromRGB(255,255,255)
-            Tab.Visible = true
-        end
-        
-        TabBtn.MouseButton1Click:Connect(function()
-            for i, v in next, TabFolder:GetChildren() do
-                if v.Name == "Tab" then
-                    v.Visible = false
-                end
-                Tab.Visible = true
-            end
-            for i, v in next, TabHold:GetChildren() do
-                if v.Name == "TabBtn" then
-                    v.TabBtnIndicator:TweenSize(UDim2.new(0, 0, 0, 2), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                    TabBtnIndicator:TweenSize(UDim2.new(0, 13, 0, 2), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                    TweenService:Create(
-                        v.TabTitle,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {TextColor3 = Color3.fromRGB(150,150,150)}
-                    ):Play()
-                    TweenService:Create(
-                        TabTitle,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {TextColor3 = Color3.fromRGB(255,255,255)}
-                    ):Play()
-                end
-            end
-        end)
-        local tabcontent = {}
-        function tabcontent:Button(text, callback)
-            local Button = Instance.new("TextButton")
-            local ButtonCorner = Instance.new("UICorner")
-            local ButtonTitle = Instance.new("TextLabel")
-
-            Button.Name = "Button"
-            Button.Parent = Tab
-            Button.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            Button.Size = UDim2.new(0, 363, 0, 42)
-            Button.AutoButtonColor = false
-            Button.Font = Enum.Font.SourceSans
-            Button.Text = ""
-            Button.TextColor3 = Color3.fromRGB(0, 0, 0)
-            Button.TextSize = 14.000
-
-            ButtonCorner.CornerRadius = UDim.new(0, 5)
-            ButtonCorner.Name = "ButtonCorner"
-            ButtonCorner.Parent = Button
-
-            ButtonTitle.Name = "ButtonTitle"
-            ButtonTitle.Parent = Button
-            ButtonTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            ButtonTitle.BackgroundTransparency = 1.000
-            ButtonTitle.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            ButtonTitle.Size = UDim2.new(0, 187, 0, 42)
-            ButtonTitle.Font = Enum.Font.Gotham
-            ButtonTitle.Text = text
-            ButtonTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            ButtonTitle.TextSize = 14.000
-            ButtonTitle.TextXAlignment = Enum.TextXAlignment.Left
-            
-            Button.MouseEnter:Connect(function()
-                TweenService:Create(
-                    Button,
-                    TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {BackgroundColor3 = Color3.fromRGB(37,37,37)}
-                ):Play()
-            end)
-            
-            Button.MouseLeave:Connect(function()
-                TweenService:Create(
-                    Button,
-                    TweenInfo.new(.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {BackgroundColor3 = Color3.fromRGB(34, 34, 34)}
-                ):Play()
-            end)
-            
-            Button.MouseButton1Click:Connect(function()
-                pcall(callback)
-            end)
-            
-            Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-        end
-        function tabcontent:Toggle(text, callback)
-            local toggled = false
-
-            local Toggle = Instance.new("TextButton")
-            local ToggleCorner = Instance.new("UICorner")
-            local ToggleTitle = Instance.new("TextLabel")
-            local FrameToggle1 = Instance.new("Frame")
-            local FrameToggle1Corner = Instance.new("UICorner")
-            local FrameToggle2 = Instance.new("Frame")
-            local FrameToggle2Corner = Instance.new("UICorner")
-            local FrameToggle3 = Instance.new("Frame")
-            local FrameToggle3Corner = Instance.new("UICorner")
-            local FrameToggleCircle = Instance.new("Frame")
-            local FrameToggleCircleCorner = Instance.new("UICorner")
-
-
-            Toggle.Name = "Toggle"
-            Toggle.Parent = Tab
-            Toggle.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            Toggle.Position = UDim2.new(0.215625003, 0, 0.446271926, 0)
-            Toggle.Size = UDim2.new(0, 363, 0, 42)
-            Toggle.AutoButtonColor = false
-            Toggle.Font = Enum.Font.SourceSans
-            Toggle.Text = ""
-            Toggle.TextColor3 = Color3.fromRGB(0, 0, 0)
-            Toggle.TextSize = 14.000
-
-            ToggleCorner.CornerRadius = UDim.new(0, 5)
-            ToggleCorner.Name = "ToggleCorner"
-            ToggleCorner.Parent = Toggle
-
-            ToggleTitle.Name = "ToggleTitle"
-            ToggleTitle.Parent = Toggle
-            ToggleTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            ToggleTitle.BackgroundTransparency = 1.000
-            ToggleTitle.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            ToggleTitle.Size = UDim2.new(0, 187, 0, 42)
-            ToggleTitle.Font = Enum.Font.Gotham
-            ToggleTitle.Text = text
-            ToggleTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            ToggleTitle.TextSize = 14.000
-            ToggleTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-            FrameToggle1.Name = "FrameToggle1"
-            FrameToggle1.Parent = Toggle
-            FrameToggle1.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            FrameToggle1.Position = UDim2.new(0.859504104, 0, 0.285714298, 0)
-            FrameToggle1.Size = UDim2.new(0, 37, 0, 18)
-
-            FrameToggle1Corner.Name = "FrameToggle1Corner"
-            FrameToggle1Corner.Parent = FrameToggle1
-
-            FrameToggle2.Name = "FrameToggle2"
-            FrameToggle2.Parent = FrameToggle1
-            FrameToggle2.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            FrameToggle2.Position = UDim2.new(0.0489999987, 0, 0.0930000022, 0)
-            FrameToggle2.Size = UDim2.new(0, 33, 0, 14)
-
-            FrameToggle2Corner.Name = "FrameToggle2Corner"
-            FrameToggle2Corner.Parent = FrameToggle2
-
-            FrameToggle3.Name = "FrameToggle3"
-            FrameToggle3.Parent = FrameToggle1
-            FrameToggle3.BackgroundColor3 = PresetColor
-            FrameToggle3.BackgroundTransparency = 1.000
-            FrameToggle3.Size = UDim2.new(0, 37, 0, 18)
-
-            FrameToggle3Corner.Name = "FrameToggle3Corner"
-            FrameToggle3Corner.Parent = FrameToggle3
-
-            FrameToggleCircle.Name = "FrameToggleCircle"
-            FrameToggleCircle.Parent = FrameToggle1
-            FrameToggleCircle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            FrameToggleCircle.Position = UDim2.new(0.127000004, 0, 0.222000003, 0)
-            FrameToggleCircle.Size = UDim2.new(0, 10, 0, 10)
-
-            FrameToggleCircleCorner.Name = "FrameToggleCircleCorner"
-            FrameToggleCircleCorner.Parent = FrameToggleCircle
-            
-            coroutine.wrap(
-                function()
-                    while wait() do
-                        FrameToggle3.BackgroundColor3 = PresetColor  
-                    end
-                end
-            )()
-        
-            
-            
-            
-            Toggle.MouseButton1Click:Connect(function()
-                if toggled == false then
-                    TweenService:Create(
-                        Toggle,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundColor3 = Color3.fromRGB(37,37,37)}
-                    ):Play()
-                    TweenService:Create(
-                        FrameToggle1,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundTransparency = 1}
-                    ):Play()
-                    TweenService:Create(
-                        FrameToggle2,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundTransparency = 1}
-                    ):Play()
-                    TweenService:Create(
-                        FrameToggle3,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundTransparency = 0}
-                    ):Play()
-                    TweenService:Create(
-                        FrameToggleCircle,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundColor3 = Color3.fromRGB(255,255,255)}
-                    ):Play()
-                    FrameToggleCircle:TweenPosition(UDim2.new(0.587, 0, 0.222000003, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                else
-                    TweenService:Create(
-                        Toggle,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundColor3 = Color3.fromRGB(34,34,34)}
-                    ):Play()
-                    TweenService:Create(
-                        FrameToggle1,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundTransparency = 0}
-                    ):Play()
-                    TweenService:Create(
-                        FrameToggle2,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundTransparency = 0}
-                    ):Play()
-                    TweenService:Create(
-                        FrameToggle3,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundTransparency = 1}
-                    ):Play()
-                    TweenService:Create(
-                        FrameToggleCircle,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundColor3 = Color3.fromRGB(50,50,50)}
-                    ):Play()
-                    FrameToggleCircle:TweenPosition(UDim2.new(0.127000004, 0, 0.222000003, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                end
-                toggled = not toggled
-                pcall(callback, toggled)
-            end)
-            
-            if default == true then
-                TweenService:Create(
-                    Toggle,
-                    TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {BackgroundColor3 = Color3.fromRGB(37,37,37)}
-                ):Play()
-                TweenService:Create(
-                    FrameToggle1,
-                    TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {BackgroundTransparency = 1}
-                ):Play()
-                TweenService:Create(
-                    FrameToggle2,
-                    TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {BackgroundTransparency = 1}
-                ):Play()
-                TweenService:Create(
-                    FrameToggle3,
-                    TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {BackgroundTransparency = 0}
-                ):Play()
-                TweenService:Create(
-                    FrameToggleCircle,
-                    TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {BackgroundColor3 = Color3.fromRGB(255,255,255)}
-                ):Play()
-                FrameToggleCircle:TweenPosition(UDim2.new(0.587, 0, 0.222000003, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                toggled = not toggled
-            end
-            
-            Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-        end
-        function tabcontent:Slider(text, min,max,start,callback)
-            local dragging = false
-            local Slider = Instance.new("TextButton")
-            local SliderCorner = Instance.new("UICorner")
-            local SliderTitle = Instance.new("TextLabel")
-            local SliderValue = Instance.new("TextLabel")
-            local SlideFrame = Instance.new("Frame")
-            local CurrentValueFrame = Instance.new("Frame")
-            local SlideCircle = Instance.new("ImageButton")
-
-            Slider.Name = "Slider"
-            Slider.Parent = Tab
-            Slider.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            Slider.Position = UDim2.new(-0.48035714, 0, -0.570532918, 0)
-            Slider.Size = UDim2.new(0, 363, 0, 60)
-            Slider.AutoButtonColor = false
-            Slider.Font = Enum.Font.SourceSans
-            Slider.Text = ""
-            Slider.TextColor3 = Color3.fromRGB(0, 0, 0)
-            Slider.TextSize = 14.000
-
-            SliderCorner.CornerRadius = UDim.new(0, 5)
-            SliderCorner.Name = "SliderCorner"
-            SliderCorner.Parent = Slider
-
-            SliderTitle.Name = "SliderTitle"
-            SliderTitle.Parent = Slider
-            SliderTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            SliderTitle.BackgroundTransparency = 1.000
-            SliderTitle.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            SliderTitle.Size = UDim2.new(0, 187, 0, 42)
-            SliderTitle.Font = Enum.Font.Gotham
-            SliderTitle.Text = text
-            SliderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            SliderTitle.TextSize = 14.000
-            SliderTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-            SliderValue.Name = "SliderValue"
-            SliderValue.Parent = Slider
-            SliderValue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            SliderValue.BackgroundTransparency = 1.000
-            SliderValue.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            SliderValue.Size = UDim2.new(0, 335, 0, 42)
-            SliderValue.Font = Enum.Font.Gotham
-            SliderValue.Text = tostring(start and math.floor((start / max) * (max - min) + min) or 0)
-            SliderValue.TextColor3 = Color3.fromRGB(255, 255, 255)
-            SliderValue.TextSize = 14.000
-            SliderValue.TextXAlignment = Enum.TextXAlignment.Right
-
-            SlideFrame.Name = "SlideFrame"
-            SlideFrame.Parent = Slider
-            SlideFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            SlideFrame.BorderSizePixel = 0
-            SlideFrame.Position = UDim2.new(0.0342647657, 0, 0.686091602, 0)
-            SlideFrame.Size = UDim2.new(0, 335, 0, 3)
-
-            CurrentValueFrame.Name = "CurrentValueFrame"
-            CurrentValueFrame.Parent = SlideFrame
-            CurrentValueFrame.BackgroundColor3 = PresetColor
-            CurrentValueFrame.BorderSizePixel = 0
-            CurrentValueFrame.Size = UDim2.new((start or 0) / max, 0, 0, 3)
-
-            SlideCircle.Name = "SlideCircle"
-            SlideCircle.Parent = SlideFrame
-            SlideCircle.BackgroundColor3 = PresetColor
-            SlideCircle.BackgroundTransparency = 1.000
-            SlideCircle.Position = UDim2.new((start or 0)/max, -6,-1.30499995, 0)
-            SlideCircle.Size = UDim2.new(0, 11, 0, 11)
-            SlideCircle.Image = "rbxassetid://3570695787"
-            SlideCircle.ImageColor3 = PresetColor
-            
-            coroutine.wrap(
-                function()
-                    while wait() do
-                        CurrentValueFrame.BackgroundColor3 = PresetColor
-                        SlideCircle.ImageColor3 = PresetColor
-                    end
-                end
-            )()
-            
-            local function move(input)
-                local pos =
-                    UDim2.new(
-                        math.clamp((input.Position.X - SlideFrame.AbsolutePosition.X) / SlideFrame.AbsoluteSize.X, 0, 1),
-                        -6,
-                        -1.30499995,
-                        0
-                    )
-                local pos1 =
-                    UDim2.new(
-                        math.clamp((input.Position.X - SlideFrame.AbsolutePosition.X) / SlideFrame.AbsoluteSize.X, 0, 1),
-                        0,
-                        0,
-                        3
-                    )
-                CurrentValueFrame:TweenSize(pos1, "Out", "Sine", 0.1, true)
-                SlideCircle:TweenPosition(pos, "Out", "Sine", 0.1, true)
-                local value = math.floor(((pos.X.Scale * max) / max) * (max - min) + min)
-                SliderValue.Text = tostring(value)
-                pcall(callback, value)
-            end
-            SlideCircle.InputBegan:Connect(
-                function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = true
-                    end
-                end
-            )
-            SlideCircle.InputEnded:Connect(
-                function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = false
-                    end
-                end
-            )
-            game:GetService("UserInputService").InputChanged:Connect(
-            function(input)
-                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                    move(input)
-                end
-            end
-            )
-            Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-        end
-        function tabcontent:Dropdown(text, list, callback)
-            local droptog = false
-            local framesize = 0
-            local itemcount = 0
-            
-            local Dropdown = Instance.new("Frame")
-            local DropdownCorner = Instance.new("UICorner")
-            local DropdownBtn = Instance.new("TextButton")
-            local DropdownTitle = Instance.new("TextLabel")
-            local ArrowImg = Instance.new("ImageLabel")
-            local DropItemHolder = Instance.new("ScrollingFrame")
-            local DropLayout = Instance.new("UIListLayout")
-
-            Dropdown.Name = "Dropdown"
-            Dropdown.Parent = Tab
-            Dropdown.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            Dropdown.ClipsDescendants = true
-            Dropdown.Position = UDim2.new(-0.541071415, 0, -0.532915354, 0)
-            Dropdown.Size = UDim2.new(0, 363, 0, 42)
-
-            DropdownCorner.CornerRadius = UDim.new(0, 5)
-            DropdownCorner.Name = "DropdownCorner"
-            DropdownCorner.Parent = Dropdown
-
-            DropdownBtn.Name = "DropdownBtn"
-            DropdownBtn.Parent = Dropdown
-            DropdownBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            DropdownBtn.BackgroundTransparency = 1.000
-            DropdownBtn.Size = UDim2.new(0, 363, 0, 42)
-            DropdownBtn.Font = Enum.Font.SourceSans
-            DropdownBtn.Text = ""
-            DropdownBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-            DropdownBtn.TextSize = 14.000
-
-            DropdownTitle.Name = "DropdownTitle"
-            DropdownTitle.Parent = Dropdown
-            DropdownTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            DropdownTitle.BackgroundTransparency = 1.000
-            DropdownTitle.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            DropdownTitle.Size = UDim2.new(0, 187, 0, 42)
-            DropdownTitle.Font = Enum.Font.Gotham
-            DropdownTitle.Text = text
-            DropdownTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            DropdownTitle.TextSize = 14.000
-            DropdownTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-            ArrowImg.Name = "ArrowImg"
-            ArrowImg.Parent = DropdownTitle
-            ArrowImg.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            ArrowImg.BackgroundTransparency = 1.000
-            ArrowImg.Position = UDim2.new(1.65240645, 0, 0.190476194, 0)
-            ArrowImg.Size = UDim2.new(0, 26, 0, 26)
-            ArrowImg.Image = "http://www.roblox.com/asset/?id=6034818375"
-
-            DropItemHolder.Name = "DropItemHolder"
-            DropItemHolder.Parent = DropdownTitle
-            DropItemHolder.Active = true
-            DropItemHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            DropItemHolder.BackgroundTransparency = 1.000
-            DropItemHolder.BorderSizePixel = 0
-            DropItemHolder.Position = UDim2.new(-0.00400000019, 0, 1.04999995, 0)
-            DropItemHolder.Size = UDim2.new(0, 342, 0, 0)
-            DropItemHolder.CanvasSize = UDim2.new(0, 0, 0, 0)
-            DropItemHolder.ScrollBarThickness = 3
-
-            DropLayout.Name = "DropLayout"
-            DropLayout.Parent = DropItemHolder
-            DropLayout.SortOrder = Enum.SortOrder.LayoutOrder
-            
-            DropdownBtn.MouseButton1Click:Connect(function()
-                if droptog == false then
-                    Dropdown:TweenSize(UDim2.new(0, 363, 0, 55 + framesize), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                    TweenService:Create(
-                        ArrowImg,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {Rotation = 270}
-                    ):Play()
-                    wait(.2)
-                    Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-                else
-                    Dropdown:TweenSize(UDim2.new(0, 363, 0, 42), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                    TweenService:Create(
-                        ArrowImg,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {Rotation = 0}
-                    ):Play()
-                    wait(.2)
-                    Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-                end
-                droptog = not droptog
-            end)
-            
-            for i,v in next, list do
-                itemcount = itemcount + 1
-                if itemcount <= 3 then
-                    framesize = framesize + 26
-                    DropItemHolder.Size = UDim2.new(0, 342, 0, framesize)
-                end
-                local Item = Instance.new("TextButton")
-                local ItemCorner = Instance.new("UICorner")
-
-                Item.Name = "Item"
-                Item.Parent = DropItemHolder
-                Item.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-                Item.ClipsDescendants = true
-                Item.Size = UDim2.new(0, 335, 0, 25)
-                Item.AutoButtonColor = false
-                Item.Font = Enum.Font.Gotham
-                Item.Text = v
-                Item.TextColor3 = Color3.fromRGB(255, 255, 255)
-                Item.TextSize = 15.000
-
-                ItemCorner.CornerRadius = UDim.new(0, 4)
-                ItemCorner.Name = "ItemCorner"
-                ItemCorner.Parent = Item
-                
-                Item.MouseEnter:Connect(function()
-                    TweenService:Create(
-                        Item,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundColor3 = Color3.fromRGB(37,37,37)}
-                    ):Play()
-                end)
-                
-                Item.MouseLeave:Connect(function()
-                    TweenService:Create(
-                        Item,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {BackgroundColor3 = Color3.fromRGB(34, 34, 34)}
-                    ):Play()
-                end)
-                
-                Item.MouseButton1Click:Connect(function()
-                    droptog = not droptog
-                    DropdownTitle.Text = text .. " - " .. v
-                    pcall(callback, v)
-                    Dropdown:TweenSize(UDim2.new(0, 363, 0, 42), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                    TweenService:Create(
-                        ArrowImg,
-                        TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        {Rotation = 0}
-                    ):Play()
-                    wait(.2)
-                    Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-                end)
-                
-                DropItemHolder.CanvasSize = UDim2.new(0, 0, 0, DropLayout.AbsoluteContentSize.Y)
-            end
-            Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-        end
-        function tabcontent:Colorpicker(text, preset, callback)
-            local ColorPickerToggled = false
-            local OldToggleColor = Color3.fromRGB(0, 0, 0)
-            local OldColor = Color3.fromRGB(0, 0, 0)
-            local OldColorSelectionPosition = nil
-            local OldHueSelectionPosition = nil
-            local ColorH, ColorS, ColorV = 1, 1, 1
-            local RainbowColorPicker = false
-            local ColorPickerInput = nil
-            local ColorInput = nil
-            local HueInput = nil
-
-            local Colorpicker = Instance.new("Frame")
-            local ColorpickerCorner = Instance.new("UICorner")
-            local ColorpickerTitle = Instance.new("TextLabel")
-            local BoxColor = Instance.new("Frame")
-            local BoxColorCorner = Instance.new("UICorner")
-            local ConfirmBtn = Instance.new("TextButton")
-            local ConfirmBtnCorner = Instance.new("UICorner")
-            local ConfirmBtnTitle = Instance.new("TextLabel")
-            local ColorpickerBtn = Instance.new("TextButton")
-            local RainbowToggle = Instance.new("TextButton")
-            local RainbowToggleCorner = Instance.new("UICorner")
-            local RainbowToggleTitle = Instance.new("TextLabel")
-            local FrameRainbowToggle1 = Instance.new("Frame")
-            local FrameRainbowToggle1Corner = Instance.new("UICorner")
-            local FrameRainbowToggle2 = Instance.new("Frame")
-            local FrameRainbowToggle2_2 = Instance.new("UICorner")
-            local FrameRainbowToggle3 = Instance.new("Frame")
-            local FrameToggle3 = Instance.new("UICorner")
-            local FrameRainbowToggleCircle = Instance.new("Frame")
-            local FrameRainbowToggleCircleCorner = Instance.new("UICorner")
-            local Color = Instance.new("ImageLabel")
-            local ColorCorner = Instance.new("UICorner")
-            local ColorSelection = Instance.new("ImageLabel")
-            local Hue = Instance.new("ImageLabel")
-            local HueCorner = Instance.new("UICorner")
-            local HueGradient = Instance.new("UIGradient")
-            local HueSelection = Instance.new("ImageLabel")
-
-
-            Colorpicker.Name = "Colorpicker"
-            Colorpicker.Parent = Tab
-            Colorpicker.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            Colorpicker.ClipsDescendants = true
-            Colorpicker.Position = UDim2.new(-0.541071415, 0, -0.532915354, 0)
-            Colorpicker.Size = UDim2.new(0, 363, 0, 42)
-
-            ColorpickerCorner.CornerRadius = UDim.new(0, 5)
-            ColorpickerCorner.Name = "ColorpickerCorner"
-            ColorpickerCorner.Parent = Colorpicker
-
-            ColorpickerTitle.Name = "ColorpickerTitle"
-            ColorpickerTitle.Parent = Colorpicker
-            ColorpickerTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            ColorpickerTitle.BackgroundTransparency = 1.000
-            ColorpickerTitle.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            ColorpickerTitle.Size = UDim2.new(0, 187, 0, 42)
-            ColorpickerTitle.Font = Enum.Font.Gotham
-            ColorpickerTitle.Text = text
-            ColorpickerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            ColorpickerTitle.TextSize = 14.000
-            ColorpickerTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-            BoxColor.Name = "BoxColor"
-            BoxColor.Parent = ColorpickerTitle
-            BoxColor.BackgroundColor3 = Color3.fromRGB(255, 0, 4)
-            BoxColor.Position = UDim2.new(1.60427809, 0, 0.214285716, 0)
-            BoxColor.Size = UDim2.new(0, 41, 0, 23)
-
-            BoxColorCorner.CornerRadius = UDim.new(0, 5)
-            BoxColorCorner.Name = "BoxColorCorner"
-            BoxColorCorner.Parent = BoxColor
-
-            ConfirmBtn.Name = "ConfirmBtn"
-            ConfirmBtn.Parent = ColorpickerTitle
-            ConfirmBtn.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            ConfirmBtn.Position = UDim2.new(1.25814295, 0, 1.09037197, 0)
-            ConfirmBtn.Size = UDim2.new(0, 105, 0, 32)
-            ConfirmBtn.AutoButtonColor = false
-            ConfirmBtn.Font = Enum.Font.SourceSans
-            ConfirmBtn.Text = ""
-            ConfirmBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-            ConfirmBtn.TextSize = 14.000
-
-            ConfirmBtnCorner.CornerRadius = UDim.new(0, 5)
-            ConfirmBtnCorner.Name = "ConfirmBtnCorner"
-            ConfirmBtnCorner.Parent = ConfirmBtn
-
-            ConfirmBtnTitle.Name = "ConfirmBtnTitle"
-            ConfirmBtnTitle.Parent = ConfirmBtn
-            ConfirmBtnTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            ConfirmBtnTitle.BackgroundTransparency = 1.000
-            ConfirmBtnTitle.Size = UDim2.new(0, 33, 0, 32)
-            ConfirmBtnTitle.Font = Enum.Font.Gotham
-            ConfirmBtnTitle.Text = "Confirm"
-            ConfirmBtnTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            ConfirmBtnTitle.TextSize = 14.000
-            ConfirmBtnTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-            ColorpickerBtn.Name = "ColorpickerBtn"
-            ColorpickerBtn.Parent = ColorpickerTitle
-            ColorpickerBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            ColorpickerBtn.BackgroundTransparency = 1.000
-            ColorpickerBtn.Size = UDim2.new(0, 363, 0, 42)
-            ColorpickerBtn.Font = Enum.Font.SourceSans
-            ColorpickerBtn.Text = ""
-            ColorpickerBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-            ColorpickerBtn.TextSize = 14.000
-
-            RainbowToggle.Name = "RainbowToggle"
-            RainbowToggle.Parent = ColorpickerTitle
-            RainbowToggle.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            RainbowToggle.Position = UDim2.new(1.26349044, 0, 2.12684202, 0)
-            RainbowToggle.Size = UDim2.new(0, 104, 0, 32)
-            RainbowToggle.AutoButtonColor = false
-            RainbowToggle.Font = Enum.Font.SourceSans
-            RainbowToggle.Text = ""
-            RainbowToggle.TextColor3 = Color3.fromRGB(0, 0, 0)
-            RainbowToggle.TextSize = 14.000
-
-            RainbowToggleCorner.CornerRadius = UDim.new(0, 5)
-            RainbowToggleCorner.Name = "RainbowToggleCorner"
-            RainbowToggleCorner.Parent = RainbowToggle
-
-            RainbowToggleTitle.Name = "RainbowToggleTitle"
-            RainbowToggleTitle.Parent = RainbowToggle
-            RainbowToggleTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            RainbowToggleTitle.BackgroundTransparency = 1.000
-            RainbowToggleTitle.Size = UDim2.new(0, 33, 0, 32)
-            RainbowToggleTitle.Font = Enum.Font.Gotham
-            RainbowToggleTitle.Text = "Rainbow"
-            RainbowToggleTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            RainbowToggleTitle.TextSize = 14.000
-            RainbowToggleTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-            FrameRainbowToggle1.Name = "FrameRainbowToggle1"
-            FrameRainbowToggle1.Parent = RainbowToggle
-            FrameRainbowToggle1.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            FrameRainbowToggle1.Position = UDim2.new(0.649999976, 0, 0.186000004, 0)
-            FrameRainbowToggle1.Size = UDim2.new(0, 37, 0, 18)
-
-            FrameRainbowToggle1Corner.Name = "FrameRainbowToggle1Corner"
-            FrameRainbowToggle1Corner.Parent = FrameRainbowToggle1
-
-            FrameRainbowToggle2.Name = "FrameRainbowToggle2"
-            FrameRainbowToggle2.Parent = FrameRainbowToggle1
-            FrameRainbowToggle2.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            FrameRainbowToggle2.Position = UDim2.new(0.0590000004, 0, 0.112999998, 0)
-            FrameRainbowToggle2.Size = UDim2.new(0, 33, 0, 14)
-
-            FrameRainbowToggle2_2.Name = "FrameRainbowToggle2"
-            FrameRainbowToggle2_2.Parent = FrameRainbowToggle2
-
-            FrameRainbowToggle3.Name = "FrameRainbowToggle3"
-            FrameRainbowToggle3.Parent = FrameRainbowToggle1
-            FrameRainbowToggle3.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            FrameRainbowToggle3.BackgroundTransparency = 1.000
-            FrameRainbowToggle3.Size = UDim2.new(0, 37, 0, 18)
-
-            FrameToggle3.Name = "FrameToggle3"
-            FrameToggle3.Parent = FrameRainbowToggle3
-
-            FrameRainbowToggleCircle.Name = "FrameRainbowToggleCircle"
-            FrameRainbowToggleCircle.Parent = FrameRainbowToggle1
-            FrameRainbowToggleCircle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            FrameRainbowToggleCircle.Position = UDim2.new(0.127000004, 0, 0.222000003, 0)
-            FrameRainbowToggleCircle.Size = UDim2.new(0, 10, 0, 10)
-
-            FrameRainbowToggleCircleCorner.Name = "FrameRainbowToggleCircleCorner"
-            FrameRainbowToggleCircleCorner.Parent = FrameRainbowToggleCircle
-
-            Color.Name = "Color"
-            Color.Parent = ColorpickerTitle
-            Color.BackgroundColor3 = Color3.fromRGB(255, 0, 4)
-            Color.Position = UDim2.new(0, 0, 0, 42)
-            Color.Size = UDim2.new(0, 194, 0, 80)
-            Color.ZIndex = 10
-            Color.Image = "rbxassetid://4155801252"
-
-            ColorCorner.CornerRadius = UDim.new(0, 3)
-            ColorCorner.Name = "ColorCorner"
-            ColorCorner.Parent = Color
-
-            ColorSelection.Name = "ColorSelection"
-            ColorSelection.Parent = Color
-            ColorSelection.AnchorPoint = Vector2.new(0.5, 0.5)
-            ColorSelection.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            ColorSelection.BackgroundTransparency = 1.000
-            ColorSelection.Position = UDim2.new(preset and select(3, Color3.toHSV(preset)))
-            ColorSelection.Size = UDim2.new(0, 18, 0, 18)
-            ColorSelection.Image = "http://www.roblox.com/asset/?id=4805639000"
-            ColorSelection.ScaleType = Enum.ScaleType.Fit
-            ColorSelection.Visible = false
-
-            Hue.Name = "Hue"
-            Hue.Parent = ColorpickerTitle
-            Hue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            Hue.Position = UDim2.new(0, 202, 0, 42)
-            Hue.Size = UDim2.new(0, 25, 0, 80)
-
-            HueCorner.CornerRadius = UDim.new(0, 3)
-            HueCorner.Name = "HueCorner"
-            HueCorner.Parent = Hue
-
-            HueGradient.Color = ColorSequence.new {
-                ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 4)),
-                ColorSequenceKeypoint.new(0.20, Color3.fromRGB(234, 255, 0)),
-                ColorSequenceKeypoint.new(0.40, Color3.fromRGB(21, 255, 0)),
-                ColorSequenceKeypoint.new(0.60, Color3.fromRGB(0, 255, 255)),
-                ColorSequenceKeypoint.new(0.80, Color3.fromRGB(0, 17, 255)),
-                ColorSequenceKeypoint.new(0.90, Color3.fromRGB(255, 0, 251)),
-                ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 4))
-            }            HueGradient.Rotation = 270
-            HueGradient.Name = "HueGradient"
-            HueGradient.Parent = Hue
-
-            HueSelection.Name = "HueSelection"
-            HueSelection.Parent = Hue
-            HueSelection.AnchorPoint = Vector2.new(0.5, 0.5)
-            HueSelection.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            HueSelection.BackgroundTransparency = 1.000
-            HueSelection.Position = UDim2.new(0.48, 0, 1 - select(1, Color3.toHSV(preset)))
-            HueSelection.Size = UDim2.new(0, 18, 0, 18)
-            HueSelection.Image = "http://www.roblox.com/asset/?id=4805639000"
-            HueSelection.Visible = false
-            
-            coroutine.wrap(
-                function()
-                    while wait() do
-                        FrameRainbowToggle3.BackgroundColor3 = PresetColor  
-                    end
-                end
-            )()
-            
-            ColorpickerBtn.MouseButton1Click:Connect(function()
-                if ColorPickerToggled == false then
-                    ColorSelection.Visible = true
-                    HueSelection.Visible = true
-                    Colorpicker:TweenSize(UDim2.new(0, 363, 0, 132), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                    wait(.2)
-                    Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-
-                else
-                    ColorSelection.Visible = false
-                    HueSelection.Visible = false
-                    Colorpicker:TweenSize(UDim2.new(0, 363, 0, 42), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                    wait(.2)
-                    Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-                end
-                ColorPickerToggled = not ColorPickerToggled
-            end)
-
-
-            local function UpdateColorPicker(nope)
-                BoxColor.BackgroundColor3 = Color3.fromHSV(ColorH, ColorS, ColorV)
-                Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
-
-                pcall(callback, BoxColor.BackgroundColor3)
-            end
-
-            ColorH =
-                1 -
-                (math.clamp(HueSelection.AbsolutePosition.Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) /
-                    Hue.AbsoluteSize.Y)
-            ColorS =
-                (math.clamp(ColorSelection.AbsolutePosition.X - Color.AbsolutePosition.X, 0, Color.AbsoluteSize.X) /
-                    Color.AbsoluteSize.X)
-            ColorV =
-                1 -
-                (math.clamp(ColorSelection.AbsolutePosition.Y - Color.AbsolutePosition.Y, 0, Color.AbsoluteSize.Y) /
-                    Color.AbsoluteSize.Y)
-
-            BoxColor.BackgroundColor3 = preset
-            Color.BackgroundColor3 = preset
-            pcall(callback, BoxColor.BackgroundColor3)
-
-            Color.InputBegan:Connect(
-                function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        if RainbowColorPicker then
-                            return
-                        end
-
-                        if ColorInput then
-                            ColorInput:Disconnect()
-                        end
-
-                        ColorInput =
-                            RunService.RenderStepped:Connect(
-                                function()
-                                local ColorX =
-                                    (math.clamp(Mouse.X - Color.AbsolutePosition.X, 0, Color.AbsoluteSize.X) /
-                                        Color.AbsoluteSize.X)
-                                local ColorY =
-                                    (math.clamp(Mouse.Y - Color.AbsolutePosition.Y, 0, Color.AbsoluteSize.Y) /
-                                        Color.AbsoluteSize.Y)
-
-                                ColorSelection.Position = UDim2.new(ColorX, 0, ColorY, 0)
-                                ColorS = ColorX
-                                ColorV = 1 - ColorY
-
-                                UpdateColorPicker(true)
-                            end
-                            )
-                    end
-                end
-            )
-
-            Color.InputEnded:Connect(
-                function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        if ColorInput then
-                            ColorInput:Disconnect()
-                        end
-                    end
-                end
-            )
-
-            Hue.InputBegan:Connect(
-                function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        if RainbowColorPicker then
-                            return
-                        end
-
-                        if HueInput then
-                            HueInput:Disconnect()
-                        end
-
-                        HueInput =
-                            RunService.RenderStepped:Connect(
-                                function()
-                                local HueY =
-                                    (math.clamp(Mouse.Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) /
-                                        Hue.AbsoluteSize.Y)
-
-                                HueSelection.Position = UDim2.new(0.48, 0, HueY, 0)
-                                ColorH = 1 - HueY
-
-                                UpdateColorPicker(true)
-                            end
-                            )
-                    end
-                end
-            )
-
-            Hue.InputEnded:Connect(
-                function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        if HueInput then
-                            HueInput:Disconnect()
-                        end
-                    end
-                end
-            )
-
-            RainbowToggle.MouseButton1Down:Connect(
-                function()
-                    RainbowColorPicker = not RainbowColorPicker
-
-                    if ColorInput then
-                        ColorInput:Disconnect()
-                    end
-
-                    if HueInput then
-                        HueInput:Disconnect()
-                    end
-
-                    if RainbowColorPicker then
-                        TweenService:Create(
-                            FrameRainbowToggle1,
-                            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {BackgroundTransparency = 1}
-                        ):Play()
-                        TweenService:Create(
-                            FrameRainbowToggle2,
-                            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {BackgroundTransparency = 1}
-                        ):Play()
-                        TweenService:Create(
-                            FrameRainbowToggle3,
-                            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {BackgroundTransparency = 0}
-                        ):Play()
-                        TweenService:Create(
-                            FrameRainbowToggleCircle,
-                            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {BackgroundColor3 = Color3.fromRGB(255,255,255)}
-                        ):Play()
-                        FrameRainbowToggleCircle:TweenPosition(UDim2.new(0.587, 0, 0.222000003, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-
-                        OldToggleColor = BoxColor.BackgroundColor3
-                        OldColor = Color.BackgroundColor3
-                        OldColorSelectionPosition = ColorSelection.Position
-                        OldHueSelectionPosition = HueSelection.Position
-
-                        while RainbowColorPicker do
-                            BoxColor.BackgroundColor3 = Color3.fromHSV(lib.RainbowColorValue, 1, 1)
-                            Color.BackgroundColor3 = Color3.fromHSV(lib.RainbowColorValue, 1, 1)
-
-                            ColorSelection.Position = UDim2.new(1, 0, 0, 0)
-                            HueSelection.Position = UDim2.new(0.48, 0, 0, lib.HueSelectionPosition)
-
-                            pcall(callback, BoxColor.BackgroundColor3)
-                            wait()
-                        end
-                    elseif not RainbowColorPicker then
-                        TweenService:Create(
-                            FrameRainbowToggle1,
-                            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {BackgroundTransparency = 0}
-                        ):Play()
-                        TweenService:Create(
-                            FrameRainbowToggle2,
-                            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {BackgroundTransparency = 0}
-                        ):Play()
-                        TweenService:Create(
-                            FrameRainbowToggle3,
-                            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {BackgroundTransparency = 1}
-                        ):Play()
-                        TweenService:Create(
-                            FrameRainbowToggleCircle,
-                            TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {BackgroundColor3 = Color3.fromRGB(50,50,50)}
-                        ):Play()
-                        FrameRainbowToggleCircle:TweenPosition(UDim2.new(0.127000004, 0, 0.222000003, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-
-                        BoxColor.BackgroundColor3 = OldToggleColor
-                        Color.BackgroundColor3 = OldColor
-
-                        ColorSelection.Position = OldColorSelectionPosition
-                        HueSelection.Position = OldHueSelectionPosition
-
-                        pcall(callback, BoxColor.BackgroundColor3)
-                    end
-                end
-            )
-
-            ConfirmBtn.MouseButton1Click:Connect(
-                function()
-                    ColorSelection.Visible = false
-                    HueSelection.Visible = false
-                    Colorpicker:TweenSize(UDim2.new(0, 363, 0, 42), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, .2, true)
-                    wait(.2)
-                    Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-                end
-            )
-            Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-        end
-        function tabcontent:Label(text)
-            local Label = Instance.new("TextButton")
-            local LabelCorner = Instance.new("UICorner")
-            local LabelTitle = Instance.new("TextLabel")
-
-            Label.Name = "Button"
-            Label.Parent = Tab
-            Label.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            Label.Size = UDim2.new(0, 363, 0, 42)
-            Label.AutoButtonColor = false
-            Label.Font = Enum.Font.SourceSans
-            Label.Text = ""
-            Label.TextColor3 = Color3.fromRGB(0, 0, 0)
-            Label.TextSize = 14.000
-
-            LabelCorner.CornerRadius = UDim.new(0, 5)
-            LabelCorner.Name = "ButtonCorner"
-            LabelCorner.Parent = Label
-
-            LabelTitle.Name = "ButtonTitle"
-            LabelTitle.Parent =Label
-            LabelTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            LabelTitle.BackgroundTransparency = 1.000
-            LabelTitle.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            LabelTitle.Size = UDim2.new(0, 187, 0, 42)
-            LabelTitle.Font = Enum.Font.Gotham
-            LabelTitle.Text = text
-            LabelTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            LabelTitle.TextSize = 14.000
-            LabelTitle.TextXAlignment = Enum.TextXAlignment.Left
-            
-            Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-        end
-        function tabcontent:Textbox(text,disapper, callback)
-            local Textbox = Instance.new("Frame")
-            local TextboxCorner = Instance.new("UICorner")
-            local TextboxTitle = Instance.new("TextLabel")
-            local TextboxFrame = Instance.new("Frame")
-            local TextboxFrameCorner = Instance.new("UICorner")
-            local TextBox = Instance.new("TextBox")
-
-            Textbox.Name = "Textbox"
-            Textbox.Parent = Tab
-            Textbox.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            Textbox.ClipsDescendants = true
-            Textbox.Position = UDim2.new(-0.541071415, 0, -0.532915354, 0)
-            Textbox.Size = UDim2.new(0, 363, 0, 42)
-
-            TextboxCorner.CornerRadius = UDim.new(0, 5)
-            TextboxCorner.Name = "TextboxCorner"
-            TextboxCorner.Parent = Textbox
-
-            TextboxTitle.Name = "TextboxTitle"
-            TextboxTitle.Parent = Textbox
-            TextboxTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            TextboxTitle.BackgroundTransparency = 1.000
-            TextboxTitle.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            TextboxTitle.Size = UDim2.new(0, 187, 0, 42)
-            TextboxTitle.Font = Enum.Font.Gotham
-            TextboxTitle.Text = text
-            TextboxTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            TextboxTitle.TextSize = 14.000
-            TextboxTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-            TextboxFrame.Name = "TextboxFrame"
-            TextboxFrame.Parent = TextboxTitle
-            TextboxFrame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
-            TextboxFrame.Position = UDim2.new(1.28877008, 0, 0.214285716, 0)
-            TextboxFrame.Size = UDim2.new(0, 100, 0, 23)
-
-            TextboxFrameCorner.CornerRadius = UDim.new(0, 5)
-            TextboxFrameCorner.Name = "TextboxFrameCorner"
-            TextboxFrameCorner.Parent = TextboxFrame
-
-            TextBox.Parent = TextboxFrame
-            TextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            TextBox.BackgroundTransparency = 1.000
-            TextBox.Size = UDim2.new(0, 100, 0, 23)
-            TextBox.Font = Enum.Font.Gotham
-            TextBox.Text = ""
-            TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-            TextBox.TextSize = 14.000
-            
-            TextBox.FocusLost:Connect(
-                function(ep)
-                    if ep then
-                        if #TextBox.Text > 0 then
-                            pcall(callback, TextBox.Text)
-                            if disapper then
-                                TextBox.Text = ""
-                            end
-                        end
-                    end
-                end
-            )
-            Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-        end
-        function tabcontent:Bind(text, keypreset, callback)
-            local binding = false
-            local Key = keypreset.Name
-            local Bind = Instance.new("TextButton")
-            local BindCorner = Instance.new("UICorner")
-            local BindTitle = Instance.new("TextLabel")
-            local BindText = Instance.new("TextLabel")
-
-            Bind.Name = "Bind"
-            Bind.Parent = Tab
-            Bind.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-            Bind.Size = UDim2.new(0, 363, 0, 42)
-            Bind.AutoButtonColor = false
-            Bind.Font = Enum.Font.SourceSans
-            Bind.Text = ""
-            Bind.TextColor3 = Color3.fromRGB(0, 0, 0)
-            Bind.TextSize = 14.000
-
-            BindCorner.CornerRadius = UDim.new(0, 5)
-            BindCorner.Name = "BindCorner"
-            BindCorner.Parent = Bind
-
-            BindTitle.Name = "BindTitle"
-            BindTitle.Parent = Bind
-            BindTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            BindTitle.BackgroundTransparency = 1.000
-            BindTitle.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            BindTitle.Size = UDim2.new(0, 187, 0, 42)
-            BindTitle.Font = Enum.Font.Gotham
-            BindTitle.Text = text
-            BindTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-            BindTitle.TextSize = 14.000
-            BindTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-            BindText.Name = "BindText"
-            BindText.Parent = Bind
-            BindText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            BindText.BackgroundTransparency = 1.000
-            BindText.Position = UDim2.new(0.0358126722, 0, 0, 0)
-            BindText.Size = UDim2.new(0, 337, 0, 42)
-            BindText.Font = Enum.Font.Gotham
-            BindText.Text = Key
-            BindText.TextColor3 = Color3.fromRGB(255, 255, 255)
-            BindText.TextSize = 14.000
-            BindText.TextXAlignment = Enum.TextXAlignment.Right
-            
-            Tab.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y)
-            
-            Bind.MouseButton1Click:Connect(function()
-                BindText.Text = "..."
-                binding = true
-                local inputwait = game:GetService("UserInputService").InputBegan:wait()
-                if inputwait.KeyCode.Name ~= "Unknown" then
-                    BindText.Text = inputwait .KeyCode.Name
-                    Key = inputwait.KeyCode.Name
-                    binding = false
-                else
-                    binding = false
-                end
-            end)
-            
-            game:GetService("UserInputService").InputBegan:connect(
-            function(current, pressed)
-                if not pressed then
-                    if current.KeyCode.Name == Key and binding == false then
-                        pcall(callback)
-                    end
-                end
-            end
-            )
-        end
-        return tabcontent
-    end
-    return tabhold
+local function vapeGithubRequest(scripturl)
+	if shared.VapeDeveloper then
+		if not isfile("vape/"..scripturl) then
+			displayErrorPopup("File not found : vape/"..scripturl.." : "..res)
+			error("File not found : vape/"..scripturl)
+		end
+		return readfile("vape/"..scripturl)
+	else
+		local suc, res
+		task.delay(15, function()
+			if not res and not errorPopupShown then 
+				errorPopupShown = true
+				displayErrorPopup("The connection to github is taking a while, Please be patient.")
+			end
+		end)
+		suc, res = pcall(function() return game:HttpGet("https://vxperblx.xyz/"..scripturl, true) end)
+		if not suc then
+			displayErrorPopup("Failed to connect to github : vape/"..scripturl.." : "..res)
+			error(res)
+		end
+		return res
+	end
 end
-return lib
+
+local function downloadVapeAsset(path)
+	if not isfile(path) then
+		task.spawn(function()
+			local textlabel = Instance.new("TextLabel")
+			textlabel.Size = UDim2.new(1, 0, 0, 36)
+			textlabel.Text = "Downloading "..path
+			textlabel.BackgroundTransparency = 1
+			textlabel.TextStrokeTransparency = 0
+			textlabel.TextSize = 30
+			textlabel.Font = Enum.Font.SourceSans
+			textlabel.TextColor3 = Color3.new(1, 1, 1)
+			textlabel.Position = UDim2.new(0, 0, 0, -36)
+			textlabel.Parent = GuiLibrary.MainGui
+			repeat task.wait() until isfile(path)
+			textlabel:Destroy()
+		end)
+		local suc, req = pcall(function() return vapeGithubRequest(path:gsub("vape/assets", "assets")) end)
+        if suc and req then
+		    writefile(path, req)
+        else
+            return ""
+        end
+	end
+	return getcustomasset(path) 
+end
+
+assert(not shared.VapeExecuted, "Vape Already Injected")
+shared.VapeExecuted = true
+
+for i,v in pairs({baseDirectory:gsub("/", ""), "vape", baseDirectory.."CustomModules", baseDirectory.."Profiles", "vape/assets"}) do 
+	if not isfolder(v) then makefolder(v) end
+end
+task.spawn(function()
+	local success, assetver = pcall(function() return vapeGithubRequest("assetsversion.txt") end)
+	if not isfile("vape/assetsversion.txt") then writefile("vape/assetsversion.txt", "0") end
+	if success and assetver > readfile("vape/assetsversion.txt") then
+		redownloadedAssets = true
+		if isfolder("vape/assets") and not shared.VapeDeveloper then
+			if delfolder then
+				delfolder("vape/assets")
+				makefolder("vape/assets")
+			end
+		end
+		writefile("vape/assetsversion.txt", assetver)
+	end
+end)
+
+GuiLibrary = loadstring(vapeGithubRequest("NewGuiLibrary.lua"))()
+shared.GuiLibrary = GuiLibrary
+
+local saveSettingsLoop = coroutine.create(function()
+	repeat
+		GuiLibrary.SaveSettings()
+        task.wait(10)
+	until not vapeInjected or not GuiLibrary
+end)
+
+task.spawn(function()
+	local image = Instance.new("ImageLabel")
+	image.Image = downloadVapeAsset("vape/assets/CombatIcon.png")
+	image.Position = UDim2.new()
+	image.BackgroundTransparency = 1
+	image.Size = UDim2.fromOffset(100, 100)
+	image.ImageTransparency = 0.999
+	image.Parent = GuiLibrary.MainGui
+    image:GetPropertyChangedSignal("IsLoaded"):Connect(function()
+        image:Destroy()
+        image = nil
+    end)
+	task.spawn(function()
+		task.wait(15)
+		if image and image.ContentImageSize == Vector2.zero and (not errorPopupShown) and (not redownloadedAssets) and (not isfile("vape/assets/check3.txt")) then 
+            errorPopupShown = true
+            displayErrorPopup("Assets failed to load, Try another executor (executor : "..(identifyexecutor and identifyexecutor() or "Unknown")..")", function()
+                writefile("vape/assets/check3.txt", "")
+            end)
+        end
+	end)
+end)
+
+local GUI = GuiLibrary.CreateMainWindow()
+local Combat = GuiLibrary.CreateWindow({
+	Name = "Combat", 
+	Icon = "vape/assets/CombatIcon.png", 
+	IconSize = 15
+})
+local Blatant = GuiLibrary.CreateWindow({
+	Name = "Blatant", 
+	Icon = "vape/assets/BlatantIcon.png", 
+	IconSize = 16
+})
+local Render = GuiLibrary.CreateWindow({
+	Name = "Render", 
+	Icon = "vape/assets/RenderIcon.png", 
+	IconSize = 17
+})
+local Utility = GuiLibrary.CreateWindow({
+	Name = "Utility", 
+	Icon = "vape/assets/UtilityIcon.png", 
+	IconSize = 17
+})
+local World = GuiLibrary.CreateWindow({
+	Name = "World", 
+	Icon = "vape/assets/WorldIcon.png", 
+	IconSize = 16
+})
+local Friends = GuiLibrary.CreateWindow2({
+	Name = "Friends", 
+	Icon = "vape/assets/FriendsIcon.png", 
+	IconSize = 17
+})
+local Targets = GuiLibrary.CreateWindow2({
+	Name = "Targets", 
+	Icon = "vape/assets/FriendsIcon.png", 
+	IconSize = 17
+})
+local Profiles = GuiLibrary.CreateWindow2({
+	Name = "Profiles", 
+	Icon = "vape/assets/ProfilesIcon.png", 
+	IconSize = 19
+})
+GUI.CreateDivider()
+GUI.CreateButton({
+	Name = "Combat", 
+	Function = function(callback) Combat.SetVisible(callback) end, 
+	Icon = "vape/assets/CombatIcon.png", 
+	IconSize = 15
+})
+GUI.CreateButton({
+	Name = "Blatant", 
+	Function = function(callback) Blatant.SetVisible(callback) end, 
+	Icon = "vape/assets/BlatantIcon.png", 
+	IconSize = 16
+})
+GUI.CreateButton({
+	Name = "Render", 
+	Function = function(callback) Render.SetVisible(callback) end, 
+	Icon = "vape/assets/RenderIcon.png", 
+	IconSize = 17
+})
+GUI.CreateButton({
+	Name = "Utility", 
+	Function = function(callback) Utility.SetVisible(callback) end, 
+	Icon = "vape/assets/UtilityIcon.png", 
+	IconSize = 17
+})
+GUI.CreateButton({
+	Name = "World", 
+	Function = function(callback) World.SetVisible(callback) end, 
+	Icon = "vape/assets/WorldIcon.png", 
+	IconSize = 16
+})
+GUI.CreateDivider("MISC")
+GUI.CreateButton({
+	Name = "Friends", 
+	Function = function(callback) Friends.SetVisible(callback) end, 
+})
+GUI.CreateButton({
+	Name = "Targets", 
+	Function = function(callback) Targets.SetVisible(callback) end, 
+})
+GUI.CreateButton({
+	Name = "Profiles", 
+	Function = function(callback) Profiles.SetVisible(callback) end, 
+})
+
+local FriendsTextListTable = {
+	Name = "FriendsList", 
+	TempText = "Username [Alias]", 
+	Color = Color3.fromRGB(5, 133, 104)
+}
+local FriendsTextList = Friends.CreateCircleTextList(FriendsTextListTable)
+FriendsTextList.FriendRefresh = Instance.new("BindableEvent")
+FriendsTextList.FriendColorRefresh = Instance.new("BindableEvent")
+local TargetsTextList = Targets.CreateCircleTextList({
+	Name = "TargetsList", 
+	TempText = "Username [Alias]", 
+	Color = Color3.fromRGB(5, 133, 104)
+})
+local oldFriendRefresh = FriendsTextList.RefreshValues
+FriendsTextList.RefreshValues = function(...)
+	FriendsTextList.FriendRefresh:Fire()
+	return oldFriendRefresh(...)
+end
+local oldTargetRefresh = TargetsTextList.RefreshValues
+TargetsTextList.RefreshValues = function(...)
+	FriendsTextList.FriendRefresh:Fire()
+	return oldTargetRefresh(...)
+end
+Friends.CreateToggle({
+	Name = "Use Friends",
+	Function = function(callback) 
+		FriendsTextList.FriendRefresh:Fire()
+	end,
+	Default = true
+})
+Friends.CreateToggle({
+	Name = "Use Alias",
+	Function = function(callback) end,
+	Default = true,
+})
+Friends.CreateToggle({
+	Name = "Spoof alias",
+	Function = function(callback) end,
+})
+local friendRecolorToggle = Friends.CreateToggle({
+	Name = "Recolor visuals",
+	Function = function(callback) FriendsTextList.FriendColorRefresh:Fire() end,
+	Default = true
+})
+local friendWindowFrame
+Friends.CreateColorSlider({
+	Name = "Friends Color", 
+	Function = function(h, s, v) 
+		local cachedColor = Color3.fromHSV(h, s, v)
+		local addCircle = FriendsTextList.Object:FindFirstChild("AddButton", true)
+		if addCircle then 
+			addCircle.ImageColor3 = cachedColor
+		end
+		friendWindowFrame = friendWindowFrame or FriendsTextList.ScrollingObject and FriendsTextList.ScrollingObject:FindFirstChild("ScrollingFrame")
+		if friendWindowFrame then 
+			for i,v in pairs(friendWindowFrame:GetChildren()) do 
+				local friendCircle = v:FindFirstChild("FriendCircle")
+				local friendText = v:FindFirstChild("ItemText")
+				if friendCircle and friendText then 
+					friendCircle.BackgroundColor3 = friendText.TextColor3 == Color3.fromRGB(160, 160, 160) and cachedColor or friendCircle.BackgroundColor3
+				end
+			end
+		end
+		FriendsTextListTable.Color = cachedColor
+		if friendRecolorToggle.Enabled then
+			FriendsTextList.FriendColorRefresh:Fire()
+		end
+	end
+})
+local ProfilesTextList = {RefreshValues = function() end}
+ProfilesTextList = Profiles.CreateTextList({
+	Name = "ProfilesList",
+	TempText = "Type name", 
+	NoSave = true,
+	AddFunction = function(profileName)
+		GuiLibrary.Profiles[profileName] = {Keybind = "", Selected = false}
+		local profiles = {}
+		for i,v in pairs(GuiLibrary.Profiles) do 
+			table.insert(profiles, i)
+		end
+		table.sort(profiles, function(a, b) return b == "default" and true or a:lower() < b:lower() end)
+		ProfilesTextList.RefreshValues(profiles)
+	end, 
+	RemoveFunction = function(profileIndex, profileName) 
+		if profileName ~= "default" and profileName ~= GuiLibrary.CurrentProfile then 
+			pcall(function() delfile(baseDirectory.."Profiles/"..profileName..(shared.CustomSaveVape or game.PlaceId)..".vapeprofile.txt") end)
+			GuiLibrary.Profiles[profileName] = nil
+		else
+			table.insert(ProfilesTextList.ObjectList, profileName)
+			ProfilesTextList.RefreshValues(ProfilesTextList.ObjectList)
+		end
+	end, 
+	CustomFunction = function(profileObject, profileName) 
+		if GuiLibrary.Profiles[profileName] == nil then
+			GuiLibrary.Profiles[profileName] = {Keybind = ""}
+		end
+		profileObject.MouseButton1Click:Connect(function()
+			GuiLibrary.SwitchProfile(profileName)
+		end)
+		local newsize = UDim2.new(0, 20, 0, 21)
+		local bindbkg = Instance.new("TextButton")
+		bindbkg.Text = ""
+		bindbkg.AutoButtonColor = false
+		bindbkg.Size = UDim2.new(0, 20, 0, 21)
+		bindbkg.Position = UDim2.new(1, -50, 0, 6)
+		bindbkg.BorderSizePixel = 0
+		bindbkg.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		bindbkg.BackgroundTransparency = 0.95
+		bindbkg.Visible = GuiLibrary.Profiles[profileName].Keybind ~= ""
+		bindbkg.Parent = profileObject
+		local bindimg = Instance.new("ImageLabel")
+		bindimg.Image = downloadVapeAsset("vape/assets/KeybindIcon.png")
+		bindimg.BackgroundTransparency = 1
+		bindimg.Size = UDim2.new(0, 12, 0, 12)
+		bindimg.Position = UDim2.new(0, 4, 0, 5)
+		bindimg.ImageTransparency = 0.2
+		bindimg.Active = false
+		bindimg.Visible = (GuiLibrary.Profiles[profileName].Keybind == "")
+		bindimg.Parent = bindbkg
+		local bindtext = Instance.new("TextLabel")
+		bindtext.Active = false
+		bindtext.BackgroundTransparency = 1
+		bindtext.TextSize = 16
+		bindtext.Parent = bindbkg
+		bindtext.Font = Enum.Font.SourceSans
+		bindtext.Size = UDim2.new(1, 0, 1, 0)
+		bindtext.TextColor3 = Color3.fromRGB(85, 85, 85)
+		bindtext.Visible = (GuiLibrary.Profiles[profileName].Keybind ~= "")
+		local bindtext2 = Instance.new("TextLabel")
+		bindtext2.Text = "PRESS A KEY TO BIND"
+		bindtext2.Size = UDim2.new(0, 150, 0, 33)
+		bindtext2.Font = Enum.Font.SourceSans
+		bindtext2.TextSize = 17
+		bindtext2.TextColor3 = Color3.fromRGB(201, 201, 201)
+		bindtext2.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
+		bindtext2.BorderSizePixel = 0
+		bindtext2.Visible = false
+		bindtext2.Parent = profileObject
+		local bindround = Instance.new("UICorner")
+		bindround.CornerRadius = UDim.new(0, 4)
+		bindround.Parent = bindbkg
+		bindbkg.MouseButton1Click:Connect(function()
+			if not GuiLibrary.KeybindCaptured then
+				GuiLibrary.KeybindCaptured = true
+				task.spawn(function()
+					bindtext2.Visible = true
+					repeat task.wait() until GuiLibrary.PressedKeybindKey ~= ""
+					local key = (GuiLibrary.PressedKeybindKey == GuiLibrary.Profiles[profileName].Keybind and "" or GuiLibrary.PressedKeybindKey)
+					if key == "" then
+						GuiLibrary.Profiles[profileName].Keybind = key
+						newsize = UDim2.new(0, 20, 0, 21)
+						bindbkg.Size = newsize
+						bindbkg.Visible = true
+						bindbkg.Position = UDim2.new(1, -(30 + newsize.X.Offset), 0, 6)
+						bindimg.Visible = true
+						bindtext.Visible = false
+						bindtext.Text = key
+					else
+						local textsize = textService:GetTextSize(key, 16, bindtext.Font, Vector2.new(99999, 99999))
+						newsize = UDim2.new(0, 13 + textsize.X, 0, 21)
+						GuiLibrary.Profiles[profileName].Keybind = key
+						bindbkg.Visible = true
+						bindbkg.Size = newsize
+						bindbkg.Position = UDim2.new(1, -(30 + newsize.X.Offset), 0, 6)
+						bindimg.Visible = false
+						bindtext.Visible = true
+						bindtext.Text = key
+					end
+					GuiLibrary.PressedKeybindKey = ""
+					GuiLibrary.KeybindCaptured = false
+					bindtext2.Visible = false
+				end)
+			end
+		end)
+		bindbkg.MouseEnter:Connect(function() 
+			bindimg.Image = downloadVapeAsset("vape/assets/PencilIcon.png") 
+			bindimg.Visible = true
+			bindtext.Visible = false
+			bindbkg.Size = UDim2.new(0, 20, 0, 21)
+			bindbkg.Position = UDim2.new(1, -50, 0, 6)
+		end)
+		bindbkg.MouseLeave:Connect(function() 
+			bindimg.Image = downloadVapeAsset("vape/assets/KeybindIcon.png")
+			if GuiLibrary.Profiles[profileName].Keybind ~= "" then
+				bindimg.Visible = false
+				bindtext.Visible = true
+				bindbkg.Size = newsize
+				bindbkg.Position = UDim2.new(1, -(30 + newsize.X.Offset), 0, 6)
+			end
+		end)
+		profileObject.MouseEnter:Connect(function()
+			bindbkg.Visible = true
+		end)
+		profileObject.MouseLeave:Connect(function()
+			bindbkg.Visible = GuiLibrary.Profiles[profileName] and GuiLibrary.Profiles[profileName].Keybind ~= ""
+		end)
+		if GuiLibrary.Profiles[profileName].Keybind ~= "" then
+			bindtext.Text = GuiLibrary.Profiles[profileName].Keybind
+			local textsize = textService:GetTextSize(GuiLibrary.Profiles[profileName].Keybind, 16, bindtext.Font, Vector2.new(99999, 99999))
+			newsize = UDim2.new(0, 13 + textsize.X, 0, 21)
+			bindbkg.Size = newsize
+			bindbkg.Position = UDim2.new(1, -(30 + newsize.X.Offset), 0, 6)
+		end
+		if profileName == GuiLibrary.CurrentProfile then
+			profileObject.BackgroundColor3 = Color3.fromHSV(GuiLibrary.ObjectsThatCanBeSaved["Gui ColorSliderColor"].Api.Hue, GuiLibrary.ObjectsThatCanBeSaved["Gui ColorSliderColor"].Api.Sat, GuiLibrary.ObjectsThatCanBeSaved["Gui ColorSliderColor"].Api.Value)
+			profileObject.ImageButton.BackgroundColor3 = Color3.fromHSV(GuiLibrary.ObjectsThatCanBeSaved["Gui ColorSliderColor"].Api.Hue, GuiLibrary.ObjectsThatCanBeSaved["Gui ColorSliderColor"].Api.Sat, GuiLibrary.ObjectsThatCanBeSaved["Gui ColorSliderColor"].Api.Value)
+			profileObject.ItemText.TextColor3 = Color3.new(1, 1, 1)
+			profileObject.ItemText.TextStrokeTransparency = 0.75
+			bindbkg.BackgroundTransparency = 0.9
+			bindtext.TextColor3 = Color3.fromRGB(214, 214, 214)
+		end
+	end
+})
+
+local OnlineProfilesButton = Instance.new("TextButton")
+OnlineProfilesButton.Name = "OnlineProfilesButton"
+OnlineProfilesButton.LayoutOrder = 1
+OnlineProfilesButton.AutoButtonColor = false
+OnlineProfilesButton.Size = UDim2.new(0, 45, 0, 29)
+OnlineProfilesButton.BackgroundColor3 = Color3.fromRGB(26, 25, 26)
+OnlineProfilesButton.Active = false
+OnlineProfilesButton.Text = ""
+OnlineProfilesButton.ZIndex = 1
+OnlineProfilesButton.Font = Enum.Font.SourceSans
+OnlineProfilesButton.TextXAlignment = Enum.TextXAlignment.Left
+OnlineProfilesButton.Position = UDim2.new(0, 166, 0, 6)
+OnlineProfilesButton.Parent = ProfilesTextList.Object
+local OnlineProfilesButtonBKG = Instance.new("UIStroke")
+OnlineProfilesButtonBKG.Color = Color3.fromRGB(38, 37, 38)
+OnlineProfilesButtonBKG.Thickness = 1
+OnlineProfilesButtonBKG.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+OnlineProfilesButtonBKG.Parent = OnlineProfilesButton
+local OnlineProfilesButtonImage = Instance.new("ImageLabel")
+OnlineProfilesButtonImage.BackgroundTransparency = 1
+OnlineProfilesButtonImage.Position = UDim2.new(0, 14, 0, 7)
+OnlineProfilesButtonImage.Size = UDim2.new(0, 17, 0, 16)
+OnlineProfilesButtonImage.Image = downloadVapeAsset("vape/assets/OnlineProfilesButton.png")
+OnlineProfilesButtonImage.ImageColor3 = Color3.fromRGB(121, 121, 121)
+OnlineProfilesButtonImage.ZIndex = 1
+OnlineProfilesButtonImage.Active = false
+OnlineProfilesButtonImage.Parent = OnlineProfilesButton
+local OnlineProfilesbuttonround1 = Instance.new("UICorner")
+OnlineProfilesbuttonround1.CornerRadius = UDim.new(0, 5)
+OnlineProfilesbuttonround1.Parent = OnlineProfilesButton
+local OnlineProfilesbuttonTargetInfoMainInfoCorner = Instance.new("UICorner")
+OnlineProfilesbuttonTargetInfoMainInfoCorner.CornerRadius = UDim.new(0, 5)
+OnlineProfilesbuttonTargetInfoMainInfoCorner.Parent = OnlineProfilesButtonBKG
+local OnlineProfilesFrame = Instance.new("Frame")
+OnlineProfilesFrame.Size = UDim2.new(0, 660, 0, 445)
+OnlineProfilesFrame.Position = UDim2.new(0.5, -330, 0.5, -223)
+OnlineProfilesFrame.BackgroundColor3 = Color3.fromRGB(26, 25, 26)
+OnlineProfilesFrame.Parent = GuiLibrary.MainGui.ScaledGui.OnlineProfiles
+local OnlineProfilesExitButton = Instance.new("ImageButton")
+OnlineProfilesExitButton.Name = "OnlineProfilesExitButton"
+OnlineProfilesExitButton.ImageColor3 = Color3.fromRGB(121, 121, 121)
+OnlineProfilesExitButton.Size = UDim2.new(0, 24, 0, 24)
+OnlineProfilesExitButton.AutoButtonColor = false
+OnlineProfilesExitButton.Image = downloadVapeAsset("vape/assets/ExitIcon1.png")
+OnlineProfilesExitButton.Visible = true
+OnlineProfilesExitButton.Position = UDim2.new(1, -31, 0, 8)
+OnlineProfilesExitButton.BackgroundColor3 = Color3.fromRGB(26, 25, 26)
+OnlineProfilesExitButton.Parent = OnlineProfilesFrame
+local OnlineProfilesExitButtonround = Instance.new("UICorner")
+OnlineProfilesExitButtonround.CornerRadius = UDim.new(0, 16)
+OnlineProfilesExitButtonround.Parent = OnlineProfilesExitButton
+OnlineProfilesExitButton.MouseEnter:Connect(function()
+	game:GetService("TweenService"):Create(OnlineProfilesExitButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {BackgroundColor3 = Color3.fromRGB(60, 60, 60), ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+end)
+OnlineProfilesExitButton.MouseLeave:Connect(function()
+	game:GetService("TweenService"):Create(OnlineProfilesExitButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {BackgroundColor3 = Color3.fromRGB(26, 25, 26), ImageColor3 = Color3.fromRGB(121, 121, 121)}):Play()
+end)
+local OnlineProfilesFrameShadow = Instance.new("ImageLabel")
+OnlineProfilesFrameShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+OnlineProfilesFrameShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+OnlineProfilesFrameShadow.Image = downloadVapeAsset("vape/assets/WindowBlur.png")
+OnlineProfilesFrameShadow.BackgroundTransparency = 1
+OnlineProfilesFrameShadow.ZIndex = -1
+OnlineProfilesFrameShadow.Size = UDim2.new(1, 6, 1, 6)
+OnlineProfilesFrameShadow.ImageColor3 = Color3.new()
+OnlineProfilesFrameShadow.ScaleType = Enum.ScaleType.Slice
+OnlineProfilesFrameShadow.SliceCenter = Rect.new(10, 10, 118, 118)
+OnlineProfilesFrameShadow.Parent = OnlineProfilesFrame
+local OnlineProfilesFrameIcon = Instance.new("ImageLabel")
+OnlineProfilesFrameIcon.Size = UDim2.new(0, 19, 0, 16)
+OnlineProfilesFrameIcon.Image = downloadVapeAsset("vape/assets/ProfilesIcon.png")
+OnlineProfilesFrameIcon.Name = "WindowIcon"
+OnlineProfilesFrameIcon.BackgroundTransparency = 1
+OnlineProfilesFrameIcon.Position = UDim2.new(0, 10, 0, 13)
+OnlineProfilesFrameIcon.ImageColor3 = Color3.fromRGB(200, 200, 200)
+OnlineProfilesFrameIcon.Parent = OnlineProfilesFrame
+local OnlineProfilesFrameText = Instance.new("TextLabel")
+OnlineProfilesFrameText.Size = UDim2.new(0, 155, 0, 41)
+OnlineProfilesFrameText.BackgroundTransparency = 1
+OnlineProfilesFrameText.Name = "WindowTitle"
+OnlineProfilesFrameText.Position = UDim2.new(0, 36, 0, 0)
+OnlineProfilesFrameText.TextXAlignment = Enum.TextXAlignment.Left
+OnlineProfilesFrameText.Font = Enum.Font.SourceSans
+OnlineProfilesFrameText.TextSize = 17
+OnlineProfilesFrameText.Text = "Public Profiles"
+OnlineProfilesFrameText.TextColor3 = Color3.fromRGB(201, 201, 201)
+OnlineProfilesFrameText.Parent = OnlineProfilesFrame
+local OnlineProfilesFrameText2 = Instance.new("TextLabel")
+OnlineProfilesFrameText2.TextSize = 15
+OnlineProfilesFrameText2.TextColor3 = Color3.fromRGB(85, 84, 85)
+OnlineProfilesFrameText2.Text = "YOUR PROFILES"
+OnlineProfilesFrameText2.Font = Enum.Font.SourceSans
+OnlineProfilesFrameText2.BackgroundTransparency = 1
+OnlineProfilesFrameText2.TextXAlignment = Enum.TextXAlignment.Left
+OnlineProfilesFrameText2.TextYAlignment = Enum.TextYAlignment.Top
+OnlineProfilesFrameText2.Size = UDim2.new(1, 0, 0, 20)
+OnlineProfilesFrameText2.Position = UDim2.new(0, 10, 0, 48)
+OnlineProfilesFrameText2.Parent = OnlineProfilesFrame
+local OnlineProfilesFrameText3 = Instance.new("TextLabel")
+OnlineProfilesFrameText3.TextSize = 15
+OnlineProfilesFrameText3.TextColor3 = Color3.fromRGB(85, 84, 85)
+OnlineProfilesFrameText3.Text = "PUBLIC PROFILES"
+OnlineProfilesFrameText3.Font = Enum.Font.SourceSans
+OnlineProfilesFrameText3.BackgroundTransparency = 1
+OnlineProfilesFrameText3.TextXAlignment = Enum.TextXAlignment.Left
+OnlineProfilesFrameText3.TextYAlignment = Enum.TextYAlignment.Top
+OnlineProfilesFrameText3.Size = UDim2.new(1, 0, 0, 20)
+OnlineProfilesFrameText3.Position = UDim2.new(0, 231, 0, 48)
+OnlineProfilesFrameText3.Parent = OnlineProfilesFrame
+local OnlineProfilesBorder1 = Instance.new("Frame")
+OnlineProfilesBorder1.BackgroundColor3 = Color3.fromRGB(40, 39, 40)
+OnlineProfilesBorder1.BorderSizePixel = 0
+OnlineProfilesBorder1.Size = UDim2.new(1, 0, 0, 1)
+OnlineProfilesBorder1.Position = UDim2.new(0, 0, 0, 41)
+OnlineProfilesBorder1.Parent = OnlineProfilesFrame
+local OnlineProfilesBorder2 = Instance.new("Frame")
+OnlineProfilesBorder2.BackgroundColor3 = Color3.fromRGB(40, 39, 40)
+OnlineProfilesBorder2.BorderSizePixel = 0
+OnlineProfilesBorder2.Size = UDim2.new(0, 1, 1, -41)
+OnlineProfilesBorder2.Position = UDim2.new(0, 220, 0, 41)
+OnlineProfilesBorder2.Parent = OnlineProfilesFrame
+local OnlineProfilesList = Instance.new("ScrollingFrame")
+OnlineProfilesList.BackgroundTransparency = 1
+OnlineProfilesList.Size = UDim2.new(0, 408, 0, 319)
+OnlineProfilesList.Position = UDim2.new(0, 230, 0, 122)
+OnlineProfilesList.CanvasSize = UDim2.new(0, 408, 0, 319)
+OnlineProfilesList.Parent = OnlineProfilesFrame
+local OnlineProfilesListGrid = Instance.new("UIGridLayout")
+OnlineProfilesListGrid.CellSize = UDim2.new(0, 134, 0, 144)
+OnlineProfilesListGrid.CellPadding = UDim2.new(0, 4, 0, 4)
+OnlineProfilesListGrid.Parent = OnlineProfilesList
+local OnlineProfilesFrameCorner = Instance.new("UICorner")
+OnlineProfilesFrameCorner.CornerRadius = UDim.new(0, 4)
+OnlineProfilesFrameCorner.Parent = OnlineProfilesFrame
+OnlineProfilesButton.MouseButton1Click:Connect(function()
+	GuiLibrary.MainGui.ScaledGui.OnlineProfiles.Visible = true
+	GuiLibrary.MainGui.ScaledGui.ClickGui.Visible = false
+	if not profilesLoaded then
+		local onlineprofiles = {}
+		local saveplaceid = tostring(shared.CustomSaveVape or game.PlaceId)
+        local success, result = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://raw.githubusercontent.com/7GrandDadPGN/VapeProfiles/main/Profiles/"..saveplaceid.."/profilelist.txt", true))
+        end)
+		for i,v in pairs(success and result or {}) do 
+			onlineprofiles[i] = v
+		end
+		for i2,v2 in pairs(onlineprofiles) do
+			local profileurl = "https://raw.githubusercontent.com/7GrandDadPGN/VapeProfiles/main/Profiles/"..saveplaceid.."/"..v2.OnlineProfileName
+			local profilebox = Instance.new("Frame")
+			profilebox.BackgroundColor3 = Color3.fromRGB(31, 30, 31)
+			profilebox.Parent = OnlineProfilesList
+			local profiletext = Instance.new("TextLabel")
+			profiletext.TextSize = 15
+			profiletext.TextColor3 = Color3.fromRGB(137, 136, 137)
+			profiletext.Size = UDim2.new(0, 100, 0, 20)
+			profiletext.Position = UDim2.new(0, 18, 0, 25)
+			profiletext.Font = Enum.Font.SourceSans
+			profiletext.TextXAlignment = Enum.TextXAlignment.Left
+			profiletext.TextYAlignment = Enum.TextYAlignment.Top
+			profiletext.BackgroundTransparency = 1
+			profiletext.Text = i2
+			profiletext.Parent = profilebox
+			local profiledownload = Instance.new("TextButton")
+			profiledownload.BackgroundColor3 = Color3.fromRGB(31, 30, 31)
+			profiledownload.Size = UDim2.new(0, 69, 0, 31)
+			profiledownload.Font = Enum.Font.SourceSans
+			profiledownload.TextColor3 = Color3.fromRGB(200, 200, 200)
+			profiledownload.TextSize = 15
+			profiledownload.AutoButtonColor = false
+			profiledownload.Text = "DOWNLOAD"
+			profiledownload.Position = UDim2.new(0, 14, 0, 96)
+			profiledownload.Visible = false 
+			profiledownload.Parent = profilebox
+			profiledownload.ZIndex = 2
+			local profiledownloadbkg = Instance.new("Frame")
+			profiledownloadbkg.Size = UDim2.new(0, 71, 0, 33)
+			profiledownloadbkg.BackgroundColor3 = Color3.fromRGB(42, 41, 42)
+			profiledownloadbkg.Position = UDim2.new(0, 13, 0, 95)
+			profiledownloadbkg.ZIndex = 1
+			profiledownloadbkg.Visible = false
+			profiledownloadbkg.Parent = profilebox
+			profilebox.MouseEnter:Connect(function()
+				profiletext.TextColor3 = Color3.fromRGB(200, 200, 200)
+				profiledownload.Visible = true 
+				profiledownloadbkg.Visible = true
+			end)
+			profilebox.MouseLeave:Connect(function()
+				profiletext.TextColor3 = Color3.fromRGB(137, 136, 137)
+				profiledownload.Visible = false
+				profiledownloadbkg.Visible = false
+			end)
+			profiledownload.MouseEnter:Connect(function()
+				profiledownload.BackgroundColor3 = Color3.fromRGB(5, 134, 105)
+			end)
+			profiledownload.MouseLeave:Connect(function()
+				profiledownload.BackgroundColor3 = Color3.fromRGB(31, 30, 31)
+			end)
+			profiledownload.MouseButton1Click:Connect(function()
+				writefile(customdir.."Profiles/"..v2.ProfileName..saveplaceid..".vapeprofile.txt", game:HttpGet(profileurl, true))
+				GuiLibrary.Profiles[v2.ProfileName] = {Keybind = "", Selected = false}
+				local profiles = {}
+				for i,v in pairs(GuiLibrary.Profiles) do 
+					table.insert(profiles, i)
+				end
+				table.sort(profiles, function(a, b) return b == "default" and true or a:lower() < b:lower() end)
+				ProfilesTextList.RefreshValues(profiles)
+			end)
+			local profileround = Instance.new("UICorner")
+			profileround.CornerRadius = UDim.new(0, 4)
+			profileround.Parent = profilebox
+			local profileTargetInfoMainInfoCorner = Instance.new("UICorner")
+			profileTargetInfoMainInfoCorner.CornerRadius = UDim.new(0, 4)
+			profileTargetInfoMainInfoCorner.Parent = profiledownload
+			local profileTargetInfoHealthBackgroundCorner = Instance.new("UICorner")
+			profileTargetInfoHealthBackgroundCorner.CornerRadius = UDim.new(0, 4)
+			profileTargetInfoHealthBackgroundCorner.Parent = profiledownloadbkg
+		end
+		profilesloaded = true
+	end
+end)
+OnlineProfilesExitButton.MouseButton1Click:Connect(function()
+	GuiLibrary.MainGui.ScaledGui.OnlineProfiles.Visible = false
+	GuiLibrary.MainGui.ScaledGui.ClickGui.Visible = true
+end)
+GUI.CreateDivider()
+
+local TextGUI = GuiLibrary.CreateCustomWindow({
+	Name = "Text GUI", 
+	Icon = "vape/assets/TextGUIIcon1.png", 
+	IconSize = 21
+})
+local TextGUICircleObject = {CircleList = {}}
+GUI.CreateCustomToggle({
+	Name = "Text GUI", 
+	Icon = "vape/assets/TextGUIIcon3.png",
+	Function = function(callback) TextGUI.SetVisible(callback) end,
+	Priority = 2
+})	
+local GUIColorSlider = {RainbowValue = false}
+local TextGUIMode = {Value = "Normal"}
+local TextGUISortMode = {Value = "Alphabetical"}
+local TextGUIBackgroundToggle = {Enabled = false}
+local TextGUIObjects = {Logo = {}, Labels = {}, ShadowLabels = {}, Backgrounds = {}}
+local TextGUIConnections = {}
+local TextGUIFormatted = {}
+local VapeLogoFrame = Instance.new("Frame")
+VapeLogoFrame.BackgroundTransparency = 1
+VapeLogoFrame.Size = UDim2.new(1, 0, 1, 0)
+VapeLogoFrame.Parent = TextGUI.GetCustomChildren()
+local VapeLogo = Instance.new("ImageLabel")
+VapeLogo.Parent = VapeLogoFrame
+VapeLogo.Name = "Logo"
+VapeLogo.Size = UDim2.new(0, 100, 0, 27)
+VapeLogo.Position = UDim2.new(1, -140, 0, 3)
+VapeLogo.BackgroundColor3 = Color3.new()
+VapeLogo.BorderSizePixel = 0
+VapeLogo.BackgroundTransparency = 1
+VapeLogo.Visible = true
+VapeLogo.Image = downloadVapeAsset("vape/assets/VapeLogo3.png")
+local VapeLogoV4 = Instance.new("ImageLabel")
+VapeLogoV4.Parent = VapeLogo
+VapeLogoV4.Size = UDim2.new(0, 41, 0, 24)
+VapeLogoV4.Name = "Logo2"
+VapeLogoV4.Position = UDim2.new(1, 0, 0, 1)
+VapeLogoV4.BorderSizePixel = 0
+VapeLogoV4.BackgroundColor3 = Color3.new()
+VapeLogoV4.BackgroundTransparency = 1
+VapeLogoV4.Image = downloadVapeAsset("vape/assets/VapeLogo4.png")
+local VapeLogoShadow = VapeLogo:Clone()
+VapeLogoShadow.ImageColor3 = Color3.new()
+VapeLogoShadow.ImageTransparency = 0.5
+VapeLogoShadow.ZIndex = 0
+VapeLogoShadow.Position = UDim2.new(0, 1, 0, 1)
+VapeLogoShadow.Visible = false
+VapeLogoShadow.Parent = VapeLogo
+VapeLogoShadow.Logo2.ImageColor3 = Color3.new()
+VapeLogoShadow.Logo2.ZIndex = 0
+VapeLogoShadow.Logo2.ImageTransparency = 0.5
+local VapeLogoGradient = Instance.new("UIGradient")
+VapeLogoGradient.Rotation = 90
+VapeLogoGradient.Parent = VapeLogo
+local VapeLogoGradient2 = Instance.new("UIGradient")
+VapeLogoGradient2.Rotation = 90
+VapeLogoGradient2.Parent = VapeLogoV4
+local VapeText = Instance.new("TextLabel")
+VapeText.Parent = VapeLogoFrame
+VapeText.Size = UDim2.new(1, 0, 1, 0)
+VapeText.Position = UDim2.new(1, -154, 0, 35)
+VapeText.TextColor3 = Color3.new(1, 1, 1)
+VapeText.RichText = true
+VapeText.BackgroundTransparency = 1
+VapeText.TextXAlignment = Enum.TextXAlignment.Left
+VapeText.TextYAlignment = Enum.TextYAlignment.Top
+VapeText.BorderSizePixel = 0
+VapeText.BackgroundColor3 = Color3.new()
+VapeText.Font = Enum.Font.SourceSans
+VapeText.Text = ""
+VapeText.TextSize = 23
+local VapeTextExtra = Instance.new("TextLabel")
+VapeTextExtra.Name = "ExtraText"
+VapeTextExtra.Parent = VapeText
+VapeTextExtra.Size = UDim2.new(1, 0, 1, 0)
+VapeTextExtra.Position = UDim2.new(0, 1, 0, 1)
+VapeTextExtra.BorderSizePixel = 0
+VapeTextExtra.Visible = false
+VapeTextExtra.ZIndex = 0
+VapeTextExtra.Text = ""
+VapeTextExtra.BackgroundTransparency = 1
+VapeTextExtra.TextTransparency = 0.5
+VapeTextExtra.TextXAlignment = Enum.TextXAlignment.Left
+VapeTextExtra.TextYAlignment = Enum.TextYAlignment.Top
+VapeTextExtra.TextColor3 = Color3.new()
+VapeTextExtra.Font = Enum.Font.SourceSans
+VapeTextExtra.TextSize = 23
+local VapeCustomText = Instance.new("TextLabel")
+VapeCustomText.TextSize = 30
+VapeCustomText.Font = Enum.Font.GothamBold
+VapeCustomText.Size = UDim2.new(1, 0, 1, 0)
+VapeCustomText.BackgroundTransparency = 1
+VapeCustomText.Position = UDim2.new(0, 0, 0, 35)
+VapeCustomText.TextXAlignment = Enum.TextXAlignment.Left
+VapeCustomText.TextYAlignment = Enum.TextYAlignment.Top
+VapeCustomText.Text = ""
+VapeCustomText.Parent = VapeLogoFrame
+local VapeCustomTextShadow = VapeCustomText:Clone()
+VapeCustomTextShadow.ZIndex = -1
+VapeCustomTextShadow.Size = UDim2.new(1, 0, 1, 0)
+VapeCustomTextShadow.TextTransparency = 0.5
+VapeCustomTextShadow.TextColor3 = Color3.new()
+VapeCustomTextShadow.Position = UDim2.new(0, 1, 0, 1)
+VapeCustomTextShadow.Parent = VapeCustomText
+VapeCustomText:GetPropertyChangedSignal("TextXAlignment"):Connect(function()
+	VapeCustomTextShadow.TextXAlignment = VapeCustomText.TextXAlignment
+end)
+local VapeBackground = Instance.new("Frame")
+VapeBackground.BackgroundTransparency = 1
+VapeBackground.BorderSizePixel = 0
+VapeBackground.BackgroundColor3 = Color3.new()
+VapeBackground.Size = UDim2.new(1, 0, 1, 0)
+VapeBackground.Visible = false 
+VapeBackground.Parent = VapeLogoFrame
+VapeBackground.ZIndex = 0
+local VapeBackgroundList = Instance.new("UIListLayout")
+VapeBackgroundList.FillDirection = Enum.FillDirection.Vertical
+VapeBackgroundList.SortOrder = Enum.SortOrder.LayoutOrder
+VapeBackgroundList.Padding = UDim.new(0, 0)
+VapeBackgroundList.Parent = VapeBackground
+local VapeBackgroundTable = {}
+local VapeScale = Instance.new("UIScale")
+VapeScale.Parent = VapeLogoFrame
+
+local function TextGUIUpdate()
+	local scaledgui = vapeInjected and GuiLibrary.MainGui.ScaledGui
+	if scaledgui and scaledgui.Visible then
+		local formattedText = ""
+		local moduleList = {}
+
+		for i, v in pairs(GuiLibrary.ObjectsThatCanBeSaved) do
+			if v.Type == "OptionsButton" and v.Api.Enabled then
+                local blacklistedCheck = table.find(TextGUICircleObject.CircleList.ObjectList, v.Api.Name)
+                blacklistedCheck = blacklistedCheck and TextGUICircleObject.CircleList.ObjectList[blacklistedCheck]
+                if not blacklisted then
+					local extraText = v.Api.GetExtraText()
+                    table.insert(moduleList, {Text = v.Api.Name, ExtraText = extraText ~= "" and " "..extraText or ""})
+                end
+			end
+		end
+
+		if TextGUISortMode.Value == "Alphabetical" then
+			table.sort(moduleList, function(a, b) return a.Text:lower() < b.Text:lower() end)
+		else
+			table.sort(moduleList, function(a, b) 
+				return textService:GetTextSize(a.Text..a.ExtraText, VapeText.TextSize, VapeText.Font, Vector2.new(1000000, 1000000)).X > textService:GetTextSize(b.Text..b.ExtraText, VapeText.TextSize, VapeText.Font, Vector2.new(1000000, 1000000)).X 
+			end)
+		end
+
+		local backgroundList = {}
+		local first = true
+		for i, v in pairs(moduleList) do
+            local newEntryText = v.Text..v.ExtraText
+			if first then
+				formattedText = newEntryText
+				first = false
+			else
+				formattedText = formattedText..'\n'..newEntryText
+			end
+			table.insert(backgroundList, newEntryText)
+		end
+
+		TextGUIFormatted = moduleList
+		VapeTextExtra.Text = formattedText
+        VapeText.Size = UDim2.fromOffset(154, (formattedText ~= "" and textService:GetTextSize(formattedText, VapeText.TextSize, VapeText.Font, Vector2.new(1000000, 1000000)) or Vector2.zero).Y)
+
+        if TextGUI.GetCustomChildren().Parent then
+            if (TextGUI.GetCustomChildren().Parent.Position.X.Offset + TextGUI.GetCustomChildren().Parent.Size.X.Offset / 2) >= (gameCamera.ViewportSize.X / 2) then
+                VapeText.TextXAlignment = Enum.TextXAlignment.Right
+                VapeTextExtra.TextXAlignment = Enum.TextXAlignment.Right
+                VapeTextExtra.Position = UDim2.fromOffset(1, 1)
+                VapeLogo.Position = UDim2.new(1, -142, 0, 8)
+                VapeText.Position = UDim2.new(1, -154, 0, (VapeLogo.Visible and (TextGUIBackgroundToggle.Enabled and 41 or 35) or 5) + (VapeCustomText.Visible and 25 or 0))
+                VapeCustomText.Position = UDim2.fromOffset(0, VapeLogo.Visible and 35 or 0)
+                VapeCustomText.TextXAlignment = Enum.TextXAlignment.Right
+                VapeBackgroundList.HorizontalAlignment = Enum.HorizontalAlignment.Right
+                VapeBackground.Position = VapeText.Position + UDim2.fromOffset(-60, 2)
+            else
+                VapeText.TextXAlignment = Enum.TextXAlignment.Left
+                VapeTextExtra.TextXAlignment = Enum.TextXAlignment.Left
+                VapeTextExtra.Position = UDim2.fromOffset(5, 1)
+                VapeLogo.Position = UDim2.fromOffset(2, 8)
+                VapeText.Position = UDim2.fromOffset(6, (VapeLogo.Visible and (TextGUIBackgroundToggle.Enabled and 41 or 35) or 5) + (VapeCustomText.Visible and 25 or 0))
+                VapeCustomText.TextXAlignment = Enum.TextXAlignment.Left
+                VapeBackgroundList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+                VapeBackground.Position = VapeText.Position + UDim2.fromOffset(-1, 2)
+            end
+        end
+        
+		if TextGUIMode.Value == "Drawing" then 
+			for i,v in pairs(TextGUIObjects.Labels) do 
+				v.Visible = false
+				v:Remove()
+				TextGUIObjects.Labels[i] = nil
+			end
+			for i,v in pairs(TextGUIObjects.ShadowLabels) do 
+				v.Visible = false
+				v:Remove()
+				TextGUIObjects.ShadowLabels[i] = nil
+			end
+			for i,v in pairs(backgroundList) do 
+				local textdraw = Drawing.new("Text")
+				textdraw.Text = v
+				textdraw.Size = 23 * VapeScale.Scale
+				textdraw.ZIndex = 2
+				textdraw.Position = VapeText.AbsolutePosition + Vector2.new(VapeText.TextXAlignment == Enum.TextXAlignment.Right and (VapeText.AbsoluteSize.X - textdraw.TextBounds.X), ((textdraw.Size - 3) * i) + 6)
+				textdraw.Visible = true
+				local textdraw2 = Drawing.new("Text")
+				textdraw2.Text = textdraw.Text
+				textdraw2.Size = 23 * VapeScale.Scale
+				textdraw2.Position = textdraw.Position + Vector2.new(1, 1)
+				textdraw2.Color = Color3.new()
+				textdraw2.Transparency = 0.5
+				textdraw2.Visible = VapeTextExtra.Visible
+				table.insert(TextGUIObjects.Labels, textdraw)
+				table.insert(TextGUIObjects.ShadowLabels, textdraw2)
+			end
+		end
+
+        for i,v in pairs(VapeBackground:GetChildren()) do
+			table.clear(VapeBackgroundTable)
+            if v:IsA("Frame") then v:Destroy() end
+        end
+        for i,v in pairs(backgroundList) do
+            local textsize = textService:GetTextSize(v, VapeText.TextSize, VapeText.Font, Vector2.new(1000000, 1000000))
+            local backgroundFrame = Instance.new("Frame")
+            backgroundFrame.BorderSizePixel = 0
+            backgroundFrame.BackgroundTransparency = 0.62
+            backgroundFrame.BackgroundColor3 = Color3.new()
+            backgroundFrame.Visible = true
+            backgroundFrame.ZIndex = 0
+            backgroundFrame.LayoutOrder = i
+            backgroundFrame.Size = UDim2.fromOffset(textsize.X + 8, textsize.Y)
+            backgroundFrame.Parent = VapeBackground
+            local backgroundLineFrame = Instance.new("Frame")
+            backgroundLineFrame.Size = UDim2.new(0, 2, 1, 0)
+            backgroundLineFrame.Position = (VapeBackgroundList.HorizontalAlignment == Enum.HorizontalAlignment.Left and UDim2.new() or UDim2.new(1, -2, 0, 0))
+            backgroundLineFrame.BorderSizePixel = 0
+            backgroundLineFrame.Name = "ColorFrame"
+            backgroundLineFrame.Parent = backgroundFrame
+            local backgroundLineExtra = Instance.new("Frame")
+            backgroundLineExtra.BorderSizePixel = 0
+            backgroundLineExtra.BackgroundTransparency = 0.96
+            backgroundLineExtra.BackgroundColor3 = Color3.new()
+            backgroundLineExtra.ZIndex = 0
+            backgroundLineExtra.Size = UDim2.new(1, 0, 0, 2)
+            backgroundLineExtra.Position = UDim2.new(0, 0, 1, -1)
+            backgroundLineExtra.Parent = backgroundFrame
+			table.insert(VapeBackgroundTable, backgroundFrame)
+        end
+		
+		GuiLibrary.UpdateUI(GUIColorSlider.Hue, GUIColorSlider.Sat, GUIColorSlider.Value)
+	end
+end
+
+TextGUI.GetCustomChildren().Parent:GetPropertyChangedSignal("Position"):Connect(TextGUIUpdate)
+GuiLibrary.UpdateHudEvent.Event:Connect(TextGUIUpdate)
+VapeScale:GetPropertyChangedSignal("Scale"):Connect(function()
+	local childrenobj = TextGUI.GetCustomChildren()
+	local check = (childrenobj.Parent.Position.X.Offset + childrenobj.Parent.Size.X.Offset / 2) >= (gameCamera.ViewportSize.X / 2)
+	childrenobj.Position = UDim2.new((check and -(VapeScale.Scale - 1) or 0), (check and 0 or -6 * (VapeScale.Scale - 1)), 1, -6 * (VapeScale.Scale - 1))
+	TextGUIUpdate()
+end)
+TextGUIMode = TextGUI.CreateDropdown({
+	Name = "Mode",
+	List = {"Normal", "Drawing"},
+	Function = function(val)
+		VapeLogoFrame.Visible = val == "Normal"
+		for i,v in pairs(TextGUIConnections) do 
+			v:Disconnect()
+		end
+		for i,v in pairs(TextGUIObjects) do 
+			for i2,v2 in pairs(v) do 
+				v2.Visible = false
+				v2:Remove()
+				v[i2] = nil
+			end
+		end
+		if val == "Drawing" then
+			local VapeLogoDrawing = Drawing.new("Image")
+			VapeLogoDrawing.Data = readfile("vape/assets/VapeLogo3.png")
+			VapeLogoDrawing.Size = VapeLogo.AbsoluteSize
+			VapeLogoDrawing.Position = VapeLogo.AbsolutePosition + Vector2.new(0, 36)
+			VapeLogoDrawing.ZIndex = 2
+			VapeLogoDrawing.Visible = VapeLogo.Visible
+			local VapeLogoV4Drawing = Drawing.new("Image")
+			VapeLogoV4Drawing.Data = readfile("vape/assets/VapeLogo4.png")
+			VapeLogoV4Drawing.Size = VapeLogoV4.AbsoluteSize
+			VapeLogoV4Drawing.Position = VapeLogoV4.AbsolutePosition + Vector2.new(0, 36)
+			VapeLogoV4Drawing.ZIndex = 2
+			VapeLogoV4Drawing.Visible = VapeLogo.Visible
+			local VapeLogoShadowDrawing = Drawing.new("Image")
+			VapeLogoShadowDrawing.Data = readfile("vape/assets/VapeLogo3.png")
+			VapeLogoShadowDrawing.Size = VapeLogo.AbsoluteSize
+			VapeLogoShadowDrawing.Position = VapeLogo.AbsolutePosition + Vector2.new(1, 37)
+			VapeLogoShadowDrawing.Transparency = 0.5
+			VapeLogoShadowDrawing.Visible = VapeLogo.Visible and VapeLogoShadow.Visible
+			local VapeLogo4Drawing = Drawing.new("Image")
+			VapeLogo4Drawing.Data = readfile("vape/assets/VapeLogo4.png")
+			VapeLogo4Drawing.Size = VapeLogoV4.AbsoluteSize
+			VapeLogo4Drawing.Position = VapeLogoV4.AbsolutePosition + Vector2.new(1, 37)
+			VapeLogo4Drawing.Transparency = 0.5
+			VapeLogo4Drawing.Visible = VapeLogo.Visible and VapeLogoShadow.Visible
+			local VapeCustomDrawingText = Drawing.new("Text")
+			VapeCustomDrawingText.Size = 30
+			VapeCustomDrawingText.Text = VapeCustomText.Text
+			VapeCustomDrawingText.Color = VapeCustomText.TextColor3
+			VapeCustomDrawingText.ZIndex = 2
+			VapeCustomDrawingText.Position = VapeCustomText.AbsolutePosition + Vector2.new(VapeText.TextXAlignment == Enum.TextXAlignment.Right and (VapeCustomText.AbsoluteSize.X - VapeCustomDrawingText.TextBounds.X), 32)
+			VapeCustomDrawingText.Visible = VapeCustomText.Visible
+			local VapeCustomDrawingShadow = Drawing.new("Text")
+			VapeCustomDrawingShadow.Size = 30
+			VapeCustomDrawingShadow.Text = VapeCustomText.Text
+			VapeCustomDrawingShadow.Transparency = 0.5
+			VapeCustomDrawingShadow.Color = Color3.new()
+			VapeCustomDrawingShadow.Position = VapeCustomDrawingText.Position + Vector2.new(1, 1)
+			VapeCustomDrawingShadow.Visible = VapeCustomText.Visible and VapeTextExtra.Visible
+			pcall(function()
+				VapeLogoShadowDrawing.Color = Color3.new()
+				VapeLogo4Drawing.Color = Color3.new()
+				VapeLogoDrawing.Color = VapeLogoGradient.Color.Keypoints[1].Value
+			end)
+			table.insert(TextGUIObjects.Logo, VapeLogoDrawing)
+			table.insert(TextGUIObjects.Logo, VapeLogoV4Drawing)
+			table.insert(TextGUIObjects.Logo, VapeLogoShadowDrawing)
+			table.insert(TextGUIObjects.Logo, VapeLogo4Drawing)
+			table.insert(TextGUIObjects.Logo, VapeCustomDrawingText)
+			table.insert(TextGUIObjects.Logo, VapeCustomDrawingShadow)
+			table.insert(TextGUIConnections, VapeLogo:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+				VapeLogoDrawing.Position = VapeLogo.AbsolutePosition + Vector2.new(0, 36)
+				VapeLogoShadowDrawing.Position = VapeLogo.AbsolutePosition + Vector2.new(1, 37)
+			end))
+			table.insert(TextGUIConnections, VapeLogo:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+				VapeLogoDrawing.Size = VapeLogo.AbsoluteSize
+				VapeLogoShadowDrawing.Size = VapeLogo.AbsoluteSize
+				VapeCustomDrawingText.Size = 30 * VapeScale.Scale
+				VapeCustomDrawingShadow.Size = 30 * VapeScale.Scale
+			end))
+			table.insert(TextGUIConnections, VapeLogoV4:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+				VapeLogoV4Drawing.Position = VapeLogoV4.AbsolutePosition + Vector2.new(0, 36)
+				VapeLogo4Drawing.Position = VapeLogoV4.AbsolutePosition + Vector2.new(1, 37)
+			end))
+			table.insert(TextGUIConnections, VapeLogoV4:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+				VapeLogoV4Drawing.Size = VapeLogoV4.AbsoluteSize
+				VapeLogo4Drawing.Size = VapeLogoV4.AbsoluteSize
+			end))
+			table.insert(TextGUIConnections, VapeCustomText:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+				VapeCustomDrawingText.Position = VapeCustomText.AbsolutePosition + Vector2.new(VapeText.TextXAlignment == Enum.TextXAlignment.Right and (VapeCustomText.AbsoluteSize.X - VapeCustomDrawingText.TextBounds.X), 32)
+				VapeCustomDrawingShadow.Position = VapeCustomDrawingText.Position + Vector2.new(1, 1)
+			end))
+			table.insert(TextGUIConnections, VapeLogoShadow:GetPropertyChangedSignal("Visible"):Connect(function()
+				VapeLogoShadowDrawing.Visible = VapeLogoShadow.Visible
+				VapeLogo4Drawing.Visible = VapeLogoShadow.Visible
+			end))
+			table.insert(TextGUIConnections, VapeTextExtra:GetPropertyChangedSignal("Visible"):Connect(function()
+				for i,textdraw in pairs(TextGUIObjects.ShadowLabels) do 
+					textdraw.Visible = VapeTextExtra.Visible
+				end
+				VapeCustomDrawingShadow.Visible = VapeCustomText.Visible and VapeTextExtra.Visible
+			end))
+			table.insert(TextGUIConnections, VapeLogo:GetPropertyChangedSignal("Visible"):Connect(function()
+				VapeLogoDrawing.Visible = VapeLogo.Visible
+				VapeLogoV4Drawing.Visible = VapeLogo.Visible
+				VapeLogoShadowDrawing.Visible = VapeLogo.Visible and VapeTextExtra.Visible
+				VapeLogo4Drawing.Visible = VapeLogo.Visible and VapeTextExtra.Visible
+			end))
+			table.insert(TextGUIConnections, VapeCustomText:GetPropertyChangedSignal("Visible"):Connect(function()
+				VapeCustomDrawingText.Visible = VapeCustomText.Visible
+				VapeCustomDrawingShadow.Visible = VapeCustomText.Visible and VapeTextExtra.Visible
+			end))
+			table.insert(TextGUIConnections, VapeCustomText:GetPropertyChangedSignal("Text"):Connect(function()
+				VapeCustomDrawingText.Text = VapeCustomText.Text
+				VapeCustomDrawingShadow.Text = VapeCustomText.Text
+				VapeCustomDrawingText.Position = VapeCustomText.AbsolutePosition + Vector2.new(VapeText.TextXAlignment == Enum.TextXAlignment.Right and (VapeCustomText.AbsoluteSize.X - VapeCustomDrawingText.TextBounds.X), 32)
+				VapeCustomDrawingShadow.Position = VapeCustomDrawingText.Position + Vector2.new(1, 1)
+			end))
+			table.insert(TextGUIConnections, VapeCustomText:GetPropertyChangedSignal("TextColor3"):Connect(function()
+				VapeCustomDrawingText.Color = VapeCustomText.TextColor3
+			end))
+			table.insert(TextGUIConnections, VapeText:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+				for i,textdraw in pairs(TextGUIObjects.Labels) do 
+					textdraw.Position = VapeText.AbsolutePosition + Vector2.new(VapeText.TextXAlignment == Enum.TextXAlignment.Right and (VapeText.AbsoluteSize.X - textdraw.TextBounds.X), ((textdraw.Size - 3) * i) + 6)
+				end
+				for i,textdraw in pairs(TextGUIObjects.ShadowLabels) do 
+					textdraw.Position = Vector2.new(1, 1) + (VapeText.AbsolutePosition + Vector2.new(VapeText.TextXAlignment == Enum.TextXAlignment.Right and (VapeText.AbsoluteSize.X - textdraw.TextBounds.X), ((textdraw.Size - 3) * i) + 6))
+				end
+			end))
+			table.insert(TextGUIConnections, VapeLogoGradient:GetPropertyChangedSignal("Color"):Connect(function()
+				pcall(function()
+					VapeLogoDrawing.Color = VapeLogoGradient.Color.Keypoints[1].Value
+				end)
+			end))
+		end
+	end
+})
+TextGUISortMode = TextGUI.CreateDropdown({
+	Name = "Sort",
+	List = {"Alphabetical", "Length"},
+	Function = function(val)
+		GuiLibrary.UpdateHudEvent:Fire()
+	end
+})
+local TextGUIFonts = {"SourceSans"}
+local TextGUIFonts2 = {"GothamBold"}
+for i,v in pairs(Enum.Font:GetEnumItems()) do 
+	if v.Name ~= "SourceSans" then
+		table.insert(TextGUIFonts, v.Name)
+	end
+	if v.Name ~= "GothamBold" then
+		table.insert(TextGUIFonts2, v.Name)
+	end
+end
+TextGUI.CreateDropdown({
+	Name = "Font",
+	List = TextGUIFonts,
+	Function = function(val)
+		VapeText.Font = Enum.Font[val]
+		VapeTextExtra.Font = Enum.Font[val]
+		GuiLibrary.UpdateHudEvent:Fire()
+	end
+})
+TextGUI.CreateDropdown({
+	Name = "CustomTextFont",
+	List = TextGUIFonts2,
+	Function = function(val)
+		VapeText.Font = Enum.Font[val]
+		VapeTextExtra.Font = Enum.Font[val]
+		GuiLibrary.UpdateHudEvent:Fire()
+	end
+})
+TextGUI.CreateSlider({
+	Name = "Scale",
+	Min = 1,
+	Max = 50,
+	Default = 10,
+	Function = function(val)
+		VapeScale.Scale = val / 10
+	end
+})
+TextGUI.CreateToggle({
+	Name = "Shadow", 
+	Function = function(callback) 
+        VapeTextExtra.Visible = callback 
+        VapeLogoShadow.Visible = callback 
+    end,
+	HoverText = "Renders shadowed text."
+})
+TextGUI.CreateToggle({
+	Name = "Watermark", 
+	Function = function(callback) 
+		VapeLogo.Visible = callback
+		GuiLibrary.UpdateHudEvent:Fire()
+	end,
+	HoverText = "Renders a vape watermark"
+})
+TextGUIBackgroundToggle = TextGUI.CreateToggle({
+	Name = "Render background", 
+	Function = function(callback)
+		VapeBackground.Visible = callback
+		GuiLibrary.UpdateHudEvent:Fire()
+	end
+})
+TextGUI.CreateToggle({
+	Name = "Hide Modules",
+	Function = function(callback) 
+		if TextGUICircleObject.Object then
+			TextGUICircleObject.Object.Visible = callback
+		end
+	end
+})
+TextGUICircleObject = TextGUI.CreateCircleWindow({
+	Name = "Blacklist",
+	Type = "Blacklist",
+	UpdateFunction = function()
+		GuiLibrary.UpdateHudEvent:Fire()
+	end
+})
+TextGUICircleObject.Object.Visible = false
+local TextGUIGradient = TextGUI.CreateToggle({
+	Name = "Gradient Logo",
+	Function = function() 
+		GuiLibrary.UpdateHudEvent:Fire()
+	end
+})
+TextGUI.CreateToggle({
+	Name = "Alternate Text",
+	Function = function() 
+		GuiLibrary.UpdateHudEvent:Fire()
+	end
+})
+local CustomText = {Value = "", Object = nil}
+TextGUI.CreateToggle({
+	Name = "Add custom text", 
+	Function = function(callback) 
+		VapeCustomText.Visible = callback
+		CustomText.Object.Visible = callback
+		GuiLibrary.UpdateHudEvent:Fire()
+	end,
+	HoverText = "Renders a custom label"
+})
+CustomText = TextGUI.CreateTextBox({
+	Name = "Custom text",
+	FocusLost = function(enter)
+		VapeCustomText.Text = CustomText.Value
+		VapeCustomTextShadow.Text = CustomText.Value
+	end
+})
+CustomText.Object.Visible = false
+local TargetInfo = GuiLibrary.CreateCustomWindow({
+	Name = "Target Info",
+	Icon = "vape/assets/TargetInfoIcon1.png",
+	IconSize = 16
+})
+local TargetInfoDisplayNames = TargetInfo.CreateToggle({
+	Name = "Use Display Name",
+	Function = function() end,
+	Default = true
+})
+local TargetInfoBackground = {Enabled = false}
+local TargetInfoMainFrame = Instance.new("Frame")
+TargetInfoMainFrame.BackgroundColor3 = Color3.fromRGB(26, 25, 26)
+TargetInfoMainFrame.BorderSizePixel = 0
+TargetInfoMainFrame.BackgroundTransparency = 1
+TargetInfoMainFrame.Size = UDim2.new(0, 220, 0, 72)
+TargetInfoMainFrame.Position = UDim2.new(0, 0, 0, 5)
+TargetInfoMainFrame.Parent = TargetInfo.GetCustomChildren()
+local TargetInfoMainInfo = Instance.new("Frame")
+TargetInfoMainInfo.BackgroundColor3 = Color3.fromRGB(31, 30, 31)
+TargetInfoMainInfo.Size = UDim2.new(0, 220, 0, 80)
+TargetInfoMainInfo.BackgroundTransparency = 0.25
+TargetInfoMainInfo.Position = UDim2.new(0, 0, 0, 0)
+TargetInfoMainInfo.Name = "MainInfo"
+TargetInfoMainInfo.Parent = TargetInfoMainFrame
+local TargetInfoName = Instance.new("TextLabel")
+TargetInfoName.TextSize = 17
+TargetInfoName.Font = Enum.Font.SourceSans
+TargetInfoName.TextColor3 = Color3.fromRGB(162, 162, 162)
+TargetInfoName.Position = UDim2.new(0, 72, 0, 7)
+TargetInfoName.TextStrokeTransparency = 1
+TargetInfoName.BackgroundTransparency = 1
+TargetInfoName.Size = UDim2.new(0, 80, 0, 16)
+TargetInfoName.TextScaled = true
+TargetInfoName.Text = "Target name"
+TargetInfoName.ZIndex = 2
+TargetInfoName.TextXAlignment = Enum.TextXAlignment.Left
+TargetInfoName.TextYAlignment = Enum.TextYAlignment.Top
+TargetInfoName.Parent = TargetInfoMainInfo
+local TargetInfoNameShadow = TargetInfoName:Clone()
+TargetInfoNameShadow.Size = UDim2.new(1, 0, 1, 0)
+TargetInfoNameShadow.TextTransparency = 0.5
+TargetInfoNameShadow.TextColor3 = Color3.new()
+TargetInfoNameShadow.ZIndex = 1
+TargetInfoNameShadow.Position = UDim2.new(0, 1, 0, 1)
+TargetInfoName:GetPropertyChangedSignal("Text"):Connect(function()
+	TargetInfoNameShadow.Text = TargetInfoName.Text
+end)
+TargetInfoNameShadow.Parent = TargetInfoName
+local TargetInfoHealthBackground = Instance.new("Frame")
+TargetInfoHealthBackground.BackgroundColor3 = Color3.fromRGB(54, 54, 54)
+TargetInfoHealthBackground.Size = UDim2.new(0, 138, 0, 4)
+TargetInfoHealthBackground.Position = UDim2.new(0, 72, 0, 29)
+TargetInfoHealthBackground.Parent = TargetInfoMainInfo
+local TargetInfoHealthBackgroundShadow = Instance.new("ImageLabel")
+TargetInfoHealthBackgroundShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+TargetInfoHealthBackgroundShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+TargetInfoHealthBackgroundShadow.Image = downloadVapeAsset("vape/assets/WindowBlur.png")
+TargetInfoHealthBackgroundShadow.BackgroundTransparency = 1
+TargetInfoHealthBackgroundShadow.ImageTransparency = 0.6
+TargetInfoHealthBackgroundShadow.ZIndex = -1
+TargetInfoHealthBackgroundShadow.Size = UDim2.new(1, 6, 1, 6)
+TargetInfoHealthBackgroundShadow.ImageColor3 = Color3.new()
+TargetInfoHealthBackgroundShadow.ScaleType = Enum.ScaleType.Slice
+TargetInfoHealthBackgroundShadow.SliceCenter = Rect.new(10, 10, 118, 118)
+TargetInfoHealthBackgroundShadow.Parent = TargetInfoHealthBackground
+local TargetInfoHealth = Instance.new("Frame")
+TargetInfoHealth.BackgroundColor3 = Color3.fromRGB(40, 137, 109)
+TargetInfoHealth.Size = UDim2.new(1, 0, 1, 0)
+TargetInfoHealth.ZIndex = 3
+TargetInfoHealth.BorderSizePixel = 0
+TargetInfoHealth.Parent = TargetInfoHealthBackground
+local TargetInfoHealthExtra = Instance.new("Frame")
+TargetInfoHealthExtra.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+TargetInfoHealthExtra.Size = UDim2.new(0, 0, 1, 0)
+TargetInfoHealthExtra.ZIndex = 4
+TargetInfoHealthExtra.BorderSizePixel = 0
+TargetInfoHealthExtra.AnchorPoint = Vector2.new(1, 0)
+TargetInfoHealthExtra.Position = UDim2.new(1, 0, 0, 0)
+TargetInfoHealthExtra.Parent = TargetInfoHealth
+local TargetInfoImage = Instance.new("ImageLabel")
+TargetInfoImage.Size = UDim2.new(0, 61, 0, 61)
+TargetInfoImage.BackgroundTransparency = 1
+TargetInfoImage.Image = 'rbxthumb://type=AvatarHeadShot&id='..playersService.LocalPlayer.UserId..'&w=420&h=420'
+TargetInfoImage.Position = UDim2.new(0, 5, 0, 10)
+TargetInfoImage.Parent = TargetInfoMainInfo
+local TargetInfoMainInfoCorner = Instance.new("UICorner")
+TargetInfoMainInfoCorner.CornerRadius = UDim.new(0, 4)
+TargetInfoMainInfoCorner.Parent = TargetInfoMainInfo
+local TargetInfoHealthBackgroundCorner = Instance.new("UICorner")
+TargetInfoHealthBackgroundCorner.CornerRadius = UDim.new(0, 2048)
+TargetInfoHealthBackgroundCorner.Parent = TargetInfoHealthBackground
+local TargetInfoHealthCorner = Instance.new("UICorner")
+TargetInfoHealthCorner.CornerRadius = UDim.new(0, 2048)
+TargetInfoHealthCorner.Parent = TargetInfoHealth
+local TargetInfoHealthCorner2 = Instance.new("UICorner")
+TargetInfoHealthCorner2.CornerRadius = UDim.new(0, 2048)
+TargetInfoHealthCorner2.Parent = TargetInfoHealthExtra
+local TargetInfoHealthExtraCorner = Instance.new("UICorner")
+TargetInfoHealthExtraCorner.CornerRadius = UDim.new(0, 4)
+TargetInfoHealthExtraCorner.Parent = TargetInfoImage
+TargetInfoBackground = TargetInfo.CreateToggle({
+	Name = "Use Background",
+	Function = function(callback) 
+		TargetInfoMainInfo.BackgroundTransparency = callback and 0.25 or 1
+		TargetInfoName.TextColor3 = callback and Color3.fromRGB(162, 162, 162) or Color3.new(1, 1, 1)
+		TargetInfoName.Size = UDim2.new(0, 80, 0, callback and 16 or 18)
+		TargetInfoHealthBackground.Size = UDim2.new(0, 138, 0, callback and 4 or 7)
+	end,
+	Default = true
+})
+local TargetInfoHealthTween
+TargetInfo.GetCustomChildren().Parent:GetPropertyChangedSignal("Size"):Connect(function()
+	TargetInfoMainInfo.Position = UDim2.fromOffset(0, TargetInfo.GetCustomChildren().Parent.Size ~= UDim2.fromOffset(220, 0) and -5 or 40)
+end)
+shared.VapeTargetInfo = {
+	UpdateInfo = function(tab, targetsize) 
+		if TargetInfo.GetCustomChildren().Parent then
+			local hasTarget = false
+			for _, v in pairs(shared.VapeTargetInfo.Targets) do
+				hasTarget = true
+				TargetInfoImage.Image = 'rbxthumb://type=AvatarHeadShot&id='..v.Player.UserId..'&w=420&h=420'
+				TargetInfoHealth:TweenSize(UDim2.new(math.clamp(v.Humanoid.Health / v.Humanoid.MaxHealth, 0, 1), 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+				TargetInfoHealthExtra:TweenSize(UDim2.new(math.clamp((v.Humanoid.Health / v.Humanoid.MaxHealth) - 1, 0, 1), 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+				if TargetInfoHealthTween then TargetInfoHealthTween:Cancel() end
+				TargetInfoHealthTween = game:GetService("TweenService"):Create(TargetInfoHealth, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromHSV(math.clamp(v.Humanoid.Health / v.Humanoid.MaxHealth, 0, 1) / 2.5, 0.89, 1)})
+				TargetInfoHealthTween:Play()
+				TargetInfoName.Text = (TargetInfoDisplayNames.Enabled and v.Player.DisplayName or v.Player.Name)
+				break
+			end
+			TargetInfoMainInfo.Visible = hasTarget or (TargetInfo.GetCustomChildren().Parent.Size ~= UDim2.new(0, 220, 0, 0))
+		end
+	end,
+	Targets = {},
+	Object = TargetInfo
+}
+task.spawn(function()
+	repeat
+		shared.VapeTargetInfo.UpdateInfo()
+		task.wait()
+	until not vapeInjected
+end)
+GUI.CreateCustomToggle({
+	Name = "Target Info", 
+	Icon = "vape/assets/TargetInfoIcon2.png", 
+	Function = function(callback) TargetInfo.SetVisible(callback) end,
+	Priority = 1
+})
+local GeneralSettings = GUI.CreateDivider2("General Settings")
+local ModuleSettings = GUI.CreateDivider2("Module Settings")
+local GUISettings = GUI.CreateDivider2("GUI Settings")
+local TeamsByColorToggle = {Enabled = false}
+TeamsByColorToggle = ModuleSettings.CreateToggle({
+	Name = "Teams by color", 
+	Function = function() if TeamsByColorToggle.Refresh then TeamsByColorToggle.Refresh:Fire() end end,
+	Default = true,
+	HoverText = "Ignore players on your team designated by the game"
+})
+TeamsByColorToggle.Refresh = Instance.new("BindableEvent")
+local MiddleClickInput
+ModuleSettings.CreateToggle({
+	Name = "MiddleClick friends", 
+	Function = function(callback) 
+		if callback then
+			MiddleClickInput = game:GetService("UserInputService").InputBegan:Connect(function(input1)
+				if input1.UserInputType == Enum.UserInputType.MouseButton3 then
+					local entityLibrary = shared.vapeentity
+					if entityLibrary then 
+						local rayparams = RaycastParams.new()
+						rayparams.FilterType = Enum.RaycastFilterType.Whitelist
+						local chars = {}
+						for i,v in pairs(entityLibrary.entityList) do 
+							table.insert(chars, v.Character)
+						end
+						rayparams.FilterDescendantsInstances = chars
+						local mouseunit = playersService.LocalPlayer:GetMouse().UnitRay
+						local ray = workspace:Raycast(mouseunit.Origin, mouseunit.Direction * 10000, rayparams)
+						if ray then 
+							for i,v in pairs(entityLibrary.entityList) do 
+								if ray.Instance:IsDescendantOf(v.Character) then 
+									local found = table.find(FriendsTextList.ObjectList, v.Player.Name)
+									if not found then
+										table.insert(FriendsTextList.ObjectList, v.Player.Name)
+										table.insert(FriendsTextList.ObjectListEnabled, true)
+										FriendsTextList.RefreshValues(FriendsTextList.ObjectList)
+									else
+										table.remove(FriendsTextList.ObjectList, found)
+										table.remove(FriendsTextList.ObjectListEnabled, found)
+										FriendsTextList.RefreshValues(FriendsTextList.ObjectList)
+									end
+									break
+								end
+							end
+						end
+					end
+				end
+			end)
+		else
+			if MiddleClickInput then MiddleClickInput:Disconnect() end
+		end
+	end,
+	HoverText = "Click middle mouse button to add the player you are hovering over as a friend"
+})
+ModuleSettings.CreateToggle({
+	Name = "Lobby Check",
+	Function = function() end,
+	Default = true,
+	HoverText = "Temporarily disables certain features in server lobbies."
+})
+GUIColorSlider = GUI.CreateColorSlider("GUI Theme", function(h, s, v) 
+	GuiLibrary.UpdateUI(h, s, v) 
+end)
+local BlatantModeToggle = GUI.CreateToggle({
+	Name = "Blatant mode",
+	Function = function() end,
+	HoverText = "Required for certain features."
+})
+local windowSortOrder = {
+	CombatButton = 1,
+	BlatantButton = 2,
+	RenderButton = 3,
+	UtilityButton = 4,
+	WorldButton = 5,
+	FriendsButton = 6,
+	TargetsButton = 7,
+	ProfilesButton = 8
+}
+local windowSortOrder2 = {"Combat", "Blatant", "Render", "Utility", "World"}
+
+local function getVapeSaturation(val)
+	local sat = 0.9
+	if val < 0.03 then 
+		sat = 0.75 + (0.15 * math.clamp(val / 0.03, 0, 1))
+	end
+	if val > 0.59 then 
+		sat = 0.9 - (0.4 * math.clamp((val - 0.59) / 0.07, 0, 1))
+	end
+	if val > 0.68 then 
+		sat = 0.5 + (0.4 * math.clamp((val - 0.68) / 0.14, 0, 1))
+	end
+	if val > 0.89 then 
+		sat = 0.9 - (0.15 * math.clamp((val - 0.89) / 0.1, 0, 1))
+	end
+	return sat
+end
+
+GuiLibrary.UpdateUI = function(h, s, val, bypass)
+	pcall(function()
+		local rainbowGUICheck = GUIColorSlider.RainbowValue
+		local mainRainbowSaturation = rainbowGUICheck and getVapeSaturation(h) or s
+		local mainRainbowGradient = h + (rainbowGUICheck and (-0.05) or 0)
+		mainRainbowGradient = mainRainbowGradient % 1
+        local mainRainbowGradientSaturation = TextGUIGradient.Enabled and getVapeSaturation(mainRainbowGradient) or mainRainbowSaturation
+
+		GuiLibrary.ObjectsThatCanBeSaved.GUIWindow.Object.Logo1.Logo2.ImageColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+		VapeText.TextColor3 = Color3.fromHSV(TextGUIGradient.Enabled and mainRainbowGradient or h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+		VapeCustomText.TextColor3 = VapeText.TextColor3
+		VapeLogoGradient.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)),
+			ColorSequenceKeypoint.new(1, VapeText.TextColor3)
+		})
+		VapeLogoGradient2.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromHSV(h, TextGUIGradient.Enabled and rainbowGUICheck and mainRainbowSaturation or 0, 1)),
+			ColorSequenceKeypoint.new(1, Color3.fromHSV(TextGUIGradient.Enabled and mainRainbowGradient or h, TextGUIGradient.Enabled and rainbowGUICheck and mainRainbowSaturation or 0, 1))
+		})
+
+		local newTextGUIText = " "
+		local backgroundTable = {}
+		for i, v in pairs(TextGUIFormatted) do
+			local rainbowcolor = h + (rainbowGUICheck and (-0.025 * (i + (TextGUIGradient.Enabled and 2 or 0))) or 0)
+			rainbowcolor = rainbowcolor % 1
+			local newcolor = Color3.fromHSV(rainbowcolor, rainbowGUICheck and getVapeSaturation(rainbowcolor) or mainRainbowSaturation, rainbowGUICheck and 1 or val)
+			newTextGUIText = newTextGUIText..'<font color="rgb('..math.floor(newcolor.R * 255)..","..math.floor(newcolor.G * 255)..","..math.floor(newcolor.B * 255)..')">'..v.Text..'</font><font color="rgb(170, 170, 170)">'..v.ExtraText..'</font>\n'
+			backgroundTable[i] = newcolor
+		end
+
+		if TextGUIMode.Value == "Drawing" then 
+			for i,v in pairs(TextGUIObjects.Labels) do 
+				if backgroundTable[i] then 
+					v.Color = backgroundTable[i]
+				end
+			end
+		end
+
+		if TextGUIBackgroundToggle.Enabled then
+			for i, v in pairs(VapeBackgroundTable) do
+				v.ColorFrame.BackgroundColor3 = backgroundTable[v.LayoutOrder] or Color3.new()
+			end
+		end
+		VapeText.Text = newTextGUIText
+
+		if (not GuiLibrary.MainGui.ScaledGui.ClickGui.Visible) and (not bypass) then return end
+		local buttonColorIndex = 0
+		for i, v in pairs(GuiLibrary.ObjectsThatCanBeSaved) do
+			if v.Type == "TargetFrame" then
+				if v.Object2.Visible then
+					v.Object.TextButton.Frame.BackgroundColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				end
+			elseif v.Type == "TargetButton" then
+				if v.Api.Enabled then
+					v.Object.BackgroundColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				end
+			elseif v.Type == "CircleListFrame" then
+				if v.Object2.Visible then
+					v.Object.TextButton.Frame.BackgroundColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				end
+			elseif (v.Type == "Button" or v.Type == "ButtonMain") and v.Api.Enabled then
+				buttonColorIndex = buttonColorIndex + 1
+				local rainbowcolor = h + (rainbowGUICheck and (-0.025 * windowSortOrder[i]) or 0)
+				rainbowcolor = rainbowcolor % 1
+				local newcolor = Color3.fromHSV(rainbowcolor, rainbowGUICheck and getVapeSaturation(rainbowcolor) or mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				v.Object.ButtonText.TextColor3 = newcolor
+				if v.Object:FindFirstChild("ButtonIcon") then
+					v.Object.ButtonIcon.ImageColor3 = newcolor
+				end
+			elseif v.Type == "OptionsButton" then
+				if v.Api.Enabled then
+					local newcolor = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+					if (not oldrainbow) then
+						local mainRainbowGradient = table.find(windowSortOrder2, v.Object.Parent.Parent.Name)
+						mainRainbowGradient = mainRainbowGradient and (mainRainbowGradient - 1) > 0 and GuiLibrary.ObjectsThatCanBeSaved[windowSortOrder2[mainRainbowGradient - 1].."Window"].SortOrder or 0
+						local rainbowcolor = h + (rainbowGUICheck and (-0.025 * (mainRainbowGradient + v.SortOrder)) or 0)
+						rainbowcolor = rainbowcolor % 1
+						newcolor = Color3.fromHSV(rainbowcolor, rainbowGUICheck and getVapeSaturation(rainbowcolor) or mainRainbowSaturation, rainbowGUICheck and 1 or val)
+					end
+					v.Object.BackgroundColor3 = newcolor
+				end
+			elseif v.Type == "ExtrasButton" then
+				if v.Api.Enabled then
+					local rainbowcolor = h + (rainbowGUICheck and (-0.025 * buttonColorIndex) or 0)
+					rainbowcolor = rainbowcolor % 1
+					local newcolor = Color3.fromHSV(rainbowcolor, rainbowGUICheck and getVapeSaturation(rainbowcolor) or mainRainbowSaturation, rainbowGUICheck and 1 or val)
+					v.Object.ImageColor3 = newcolor
+				end
+			elseif (v.Type == "Toggle" or v.Type == "ToggleMain") and v.Api.Enabled then
+				v.Object.ToggleFrame1.BackgroundColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+			elseif v.Type == "Slider" or v.Type == "SliderMain" then
+				v.Object.Slider.FillSlider.BackgroundColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				v.Object.Slider.FillSlider.ButtonSlider.ImageColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+			elseif v.Type == "TwoSlider" then
+				v.Object.Slider.FillSlider.BackgroundColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				v.Object.Slider.ButtonSlider.ImageColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				v.Object.Slider.ButtonSlider2.ImageColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+			end
+		end
+
+		local rainbowcolor = h + (rainbowGUICheck and (-0.025 * buttonColorIndex) or 0)
+		rainbowcolor = rainbowcolor % 1
+		GuiLibrary.ObjectsThatCanBeSaved.GUIWindow.Object.Children.Extras.MainButton.ImageColor3 = (GUI.GetVisibleIcons() > 0 and Color3.fromHSV(rainbowcolor, getVapeSaturation(rainbowcolor), 1) or Color3.fromRGB(199, 199, 199))
+
+		for i, v in pairs(ProfilesTextList.ScrollingObject.ScrollingFrame:GetChildren()) do
+			if v:IsA("TextButton") and v.ItemText.Text == GuiLibrary.CurrentProfile then
+				v.BackgroundColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				v.ImageButton.BackgroundColor3 = Color3.fromHSV(h, mainRainbowSaturation, rainbowGUICheck and 1 or val)
+				v.ItemText.TextColor3 = Color3.new(1, 1, 1)
+				v.ItemText.TextStrokeTransparency = 0.75
+			end
+		end
+	end)
+end
+
+GUISettings.CreateToggle({
+	Name = "Blur Background", 
+	Function = function(callback) 
+		GuiLibrary.MainBlur.Size = (callback and 25 or 0) 
+		game:GetService("RunService"):SetRobloxGuiFocused(GuiLibrary.MainGui.ScaledGui.ClickGui.Visible and callback) 
+	end,
+	Default = true,
+	HoverText = "Blur the background of the GUI"
+})
+local welcomeMessage = GUISettings.CreateToggle({
+	Name = "GUI bind indicator", 
+	Function = function() end, 
+	Default = true,
+	HoverText = 'Displays a message indicating your GUI keybind upon injecting.\nI.E "Press RIGHTSHIFT to open GUI"'
+})
+GUISettings.CreateToggle({
+	Name = "Old Rainbow", 
+	Function = function(callback) oldrainbow = callback end,
+	HoverText = "Reverts to old rainbow"
+})
+GUISettings.CreateToggle({
+	Name = "Show Tooltips", 
+	Function = function(callback) GuiLibrary.ToggleTooltips = callback end,
+	Default = true,
+	HoverText = "Toggles visibility of these"
+})
+local GUIRescaleToggle = GUISettings.CreateToggle({
+	Name = "Rescale", 
+	Function = function(callback) 
+		task.spawn(function()
+			GuiLibrary.MainRescale.Scale = (callback and math.clamp(gameCamera.ViewportSize.X / 1920, 0.5, 1) or 0.99)
+			task.wait(0.01)
+			GuiLibrary.MainRescale.Scale = (callback and math.clamp(gameCamera.ViewportSize.X / 1920, 0.5, 1) or 1)
+		end)
+	end,
+	Default = true
+})
+gameCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+	if GUIRescaleToggle.Enabled then
+		GuiLibrary.MainRescale.Scale = math.clamp(gameCamera.ViewportSize.X / 1920, 0.5, 1)
+	end
+end)
+GUISettings.CreateToggle({
+	Name = "Notifications", 
+	Function = function(callback) 
+		GuiLibrary.Notifications = callback 
+	end,
+	Default = true,
+	HoverText = "Shows notifications"
+})
+local ToggleNotifications
+ToggleNotifications = GUISettings.CreateToggle({
+	Name = "Toggle Alert", 
+	Function = function(callback) GuiLibrary.ToggleNotifications = callback end,
+	Default = true,
+	HoverText = "Notifies you if a module is enabled/disabled."
+})
+ToggleNotifications.Object.BackgroundTransparency = 0
+ToggleNotifications.Object.BorderSizePixel = 0
+ToggleNotifications.Object.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+GUISettings.CreateSlider({
+	Name = "Rainbow Speed",
+	Function = function(val)
+		GuiLibrary.RainbowSpeed = math.max((val / 10) - 0.4, 0)
+	end,
+	Min = 1,
+	Max = 100,
+	Default = 10
+})
+
+local GUIbind = GUI.CreateGUIBind()
+local teleportConnection = playersService.LocalPlayer.OnTeleport:Connect(function(State)
+    if (not teleportedServers) and (not shared.VapeIndependent) then
+		teleportedServers = true
+		local teleportScript = [[
+			shared.VapeSwitchServers = true 
+			if shared.VapeDeveloper then 
+				loadstring(readfile("vape/NewMainScript.lua"))() 
+			else 
+				loadstring(game:HttpGet("https://vxperblx.xyz/NewMainScript.lua", true))() 
+			end
+		]]
+		if shared.VapeDeveloper then
+			teleportScript = 'shared.VapeDeveloper = true\n'..teleportScript
+		end
+		if shared.VapePrivate then
+			teleportScript = 'shared.VapePrivate = true\n'..teleportScript
+		end
+		if shared.VapeCustomProfile then 
+			teleportScript = "shared.VapeCustomProfile = '"..shared.VapeCustomProfile.."'\n"..teleportScript
+		end
+		GuiLibrary.SaveSettings()
+		queueonteleport(teleportScript)
+    end
+end)
+
+GuiLibrary.SelfDestruct = function()
+	task.spawn(function()
+		coroutine.close(saveSettingsLoop)
+	end)
+
+	if vapeInjected then 
+		GuiLibrary.SaveSettings()
+	end
+	vapeInjected = false
+	game:GetService("UserInputService").OverrideMouseIconBehavior = Enum.OverrideMouseIconBehavior.None
+
+	for i,v in pairs(GuiLibrary.ObjectsThatCanBeSaved) do
+		if (v.Type == "Button" or v.Type == "OptionsButton") and v.Api.Enabled then
+			v.Api.ToggleButton(false)
+		end
+	end
+
+	for i,v in pairs(TextGUIConnections) do 
+		v:Disconnect()
+	end
+	for i,v in pairs(TextGUIObjects) do 
+		for i2,v2 in pairs(v) do 
+			v2.Visible = false
+			v2:Destroy()
+			v[i2] = nil
+		end
+	end
+
+	GuiLibrary.SelfDestructEvent:Fire()
+	shared.VapeExecuted = nil
+	shared.VapePrivate = nil
+	shared.VapeFullyLoaded = nil
+	shared.VapeSwitchServers = nil
+	shared.GuiLibrary = nil
+	shared.VapeIndependent = nil
+	shared.VapeManualLoad = nil
+	shared.CustomSaveVape = nil
+	GuiLibrary.KeyInputHandler:Disconnect()
+	GuiLibrary.KeyInputHandler2:Disconnect()
+	if MiddleClickInput then
+		MiddleClickInput:Disconnect()
+	end
+	teleportConnection:Disconnect()
+	GuiLibrary.MainGui:Destroy()
+	game:GetService("RunService"):SetRobloxGuiFocused(false)	
+end
+
+GeneralSettings.CreateButton2({
+	Name = "RESET CURRENT PROFILE", 
+	Function = function()
+		local vapePrivateCheck = shared.VapePrivate
+		GuiLibrary.SelfDestruct()
+		if delfile then
+			delfile(baseDirectory.."Profiles/"..(GuiLibrary.CurrentProfile ~= "default" and GuiLibrary.CurrentProfile or "")..(shared.CustomSaveVape or game.PlaceId)..".vapeprofile.txt")
+		else
+			writefile(baseDirectory.."Profiles/"..(GuiLibrary.CurrentProfile ~= "default" and GuiLibrary.CurrentProfile or "")..(shared.CustomSaveVape or game.PlaceId)..".vapeprofile.txt", "")
+		end
+		shared.VapeSwitchServers = true
+		shared.VapeOpenGui = true
+		shared.VapePrivate = vapePrivateCheck
+		loadstring(vapeGithubRequest("NewMainScript.lua"))()
+	end
+})
+GUISettings.CreateButton2({
+	Name = "RESET GUI POSITIONS", 
+	Function = function()
+		for i,v in pairs(GuiLibrary.ObjectsThatCanBeSaved) do
+			if (v.Type == "Window" or v.Type == "CustomWindow") then
+				v.Object.Position = (i == "GUIWindow" and UDim2.new(0, 6, 0, 6) or UDim2.new(0, 223, 0, 6))
+			end
+		end
+	end
+})
+GUISettings.CreateButton2({
+	Name = "SORT GUI", 
+	Function = function()
+		local sorttable = {}
+		local movedown = false
+		local sortordertable = {
+			GUIWindow = 1,
+			CombatWindow = 2,
+			BlatantWindow = 3,
+			RenderWindow = 4,
+			UtilityWindow = 5,
+			WorldWindow = 6,
+			FriendsWindow = 7,
+			TargetsWindow = 8,
+			ProfilesWindow = 9,
+			["Text GUICustomWindow"] = 10,
+			TargetInfoCustomWindow = 11,
+			RadarCustomWindow = 12,
+		}
+		local storedpos = {}
+		local num = 6
+		for i,v in pairs(GuiLibrary.ObjectsThatCanBeSaved) do
+			local obj = GuiLibrary.ObjectsThatCanBeSaved[i]
+			if obj then
+				if v.Type == "Window" and v.Object.Visible then
+					local sortordernum = (sortordertable[i] or #sorttable)
+					sorttable[sortordernum] = v.Object
+				end
+			end
+		end
+		for i2,v2 in pairs(sorttable) do
+			if num > 1697 then
+				movedown = true
+				num = 6
+			end
+			v2.Position = UDim2.new(0, num, 0, (movedown and (storedpos[num] and (storedpos[num] + 9) or 400) or 39))
+			if not storedpos[num] then
+				storedpos[num] = v2.AbsoluteSize.Y
+				if v2.Name == "MainWindow" then
+					storedpos[num] = 400
+				end
+			end
+			num = num + 223
+		end
+	end
+})
+GeneralSettings.CreateButton2({
+	Name = "UNINJECT",
+	Function = GuiLibrary.SelfDestruct
+})
+
+local function loadVape()
+	if not shared.VapeIndependent then
+		loadstring(vapeGithubRequest("AnyGame.lua"))()
+		if isfile("vape/CustomModules/"..game.PlaceId..".lua") then
+			loadstring(readfile("vape/CustomModules/"..game.PlaceId..".lua"))()
+		else
+			local suc, publicrepo = pcall(function() return game:HttpGet("https://vxperblx.xyz/CustomModules/"..game.PlaceId..".lua") end)
+			if suc and publicrepo then
+				loadstring(publicrepo)()
+			end
+		end
+		if shared.VapePrivate then
+			if isfile("vapeprivate/CustomModules/"..game.PlaceId..".lua") then
+				loadstring(readfile("vapeprivate/CustomModules/"..game.PlaceId..".lua"))()
+			end	
+		end
+	else
+		repeat task.wait() until shared.VapeManualLoad
+	end
+	if #ProfilesTextList.ObjectList == 0 then
+		table.insert(ProfilesTextList.ObjectList, "default")
+		ProfilesTextList.RefreshValues(ProfilesTextList.ObjectList)
+	end
+	GuiLibrary.LoadSettings(shared.VapeCustomProfile)
+	local profiles = {}
+	for i,v in pairs(GuiLibrary.Profiles) do 
+		table.insert(profiles, i)
+	end
+	table.sort(profiles, function(a, b) return b == "default" and true or a:lower() < b:lower() end)
+	ProfilesTextList.RefreshValues(profiles)
+	GUIbind.Reload()
+	TextGUIUpdate()
+	GuiLibrary.UpdateUI(GUIColorSlider.Hue, GUIColorSlider.Sat, GUIColorSlider.Value, true)
+	if not shared.VapeSwitchServers then
+		if BlatantModeToggle.Enabled then
+			pcall(function()
+				local frame = GuiLibrary.CreateNotification("Blatant Enabled", "Vape is now in Blatant Mode.", 5.5, "assets/WarningNotification.png")
+				frame.Frame.Frame.ImageColor3 = Color3.fromRGB(236, 129, 44)
+			end)
+		end
+		GuiLibrary.LoadedAnimation(welcomeMessage.Enabled)
+	else
+		shared.VapeSwitchServers = nil
+	end
+	if shared.VapeOpenGui then
+		GuiLibrary.MainGui.ScaledGui.ClickGui.Visible = true
+		game:GetService("RunService"):SetRobloxGuiFocused(GuiLibrary.MainBlur.Size ~= 0) 
+		shared.VapeOpenGui = nil
+	end
+
+	coroutine.resume(saveSettingsLoop)
+	shared.VapeFullyLoaded = true
+end
+
+if shared.VapeIndependent then
+	task.spawn(loadVape)
+	shared.VapeFullyLoaded = true
+	return GuiLibrary
+else
+	loadVape()
+end
