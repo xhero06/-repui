@@ -52,7 +52,7 @@ local Library = {
 		X= 0;
 	};
 
-	KeypickerListVisible = true;
+	KeypickerListVisible = false;
 	KeypickerListMode = "All"; --[[
 		{
 			"Active",
@@ -3881,16 +3881,23 @@ function Library:CreateWindow(...)
 		BackgroundTransparency = 1;
 		Position = UDim2.new(0, 8, 0, 8);
 		Size = UDim2.new(1, -16, 0, 21);
-		ZIndex = 1;
+		ZIndex = 5;
 		CanvasSize = UDim2.new(0, 0, 0, 0);
 		AutomaticCanvasSize = Enum.AutomaticSize.X;
 		ScrollingDirection = Enum.ScrollingDirection.X;
 		ScrollBarThickness = 0;
+		ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80);
 		BottomImage = '';
 		TopImage = '';
+		ClipsDescendants = true;
 		ElasticBehavior = Enum.ElasticBehavior.Never;
 		Parent = MainSectionInner;
 	});
+
+	-- Update canvas when tabs are added
+	TabArea:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
+		TabArea.CanvasSize = UDim2.new(0, TabArea.AbsoluteCanvasSize.X, 0, 0)
+	end);
 
 	local TabListLayout = Library:Create('UIListLayout', {
 		Padding = UDim.new(0, Config.TabPadding);
@@ -3898,6 +3905,10 @@ function Library:CreateWindow(...)
 		SortOrder = Enum.SortOrder.LayoutOrder;
 		Parent = TabArea;
 	});
+
+	TabListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+		TabArea.CanvasSize = UDim2.new(0, TabListLayout.AbsoluteContentSize.X, 0, 0)
+	end);
 
 	local TabContainer = Library:Create('Frame', {
 		BackgroundColor3 = Library.MainColor;
