@@ -3586,6 +3586,7 @@ function Library:CreatePopout(Config)
 		Position = UDim2.new(0, 8, 0, 25);
 		Size = UDim2.new(1, -16, 1, -33);
 		ZIndex = 1;
+		ClipsDescendants = true;
 		Parent = Inner;
 	});
 
@@ -3879,25 +3880,20 @@ function Library:CreateWindow(...)
 
 	local TabArea = Library:Create('ScrollingFrame', {
 		BackgroundTransparency = 1;
-		Position = UDim2.new(0, 8, 0, 8);
-		Size = UDim2.new(1, -16, 0, 21);
+		Position = UDim2.new(0, 4, 0, 6);
+		Size = UDim2.new(1, -8, 0, 21);
 		ZIndex = 5;
 		CanvasSize = UDim2.new(0, 0, 0, 0);
-		AutomaticCanvasSize = Enum.AutomaticSize.X;
+		AutomaticCanvasSize = Enum.AutomaticSize.None;
 		ScrollingDirection = Enum.ScrollingDirection.X;
-		ScrollBarThickness = 0;
+		ScrollBarThickness = 2;
 		ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80);
-		BottomImage = '';
-		TopImage = '';
+		BottomImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png';
+		TopImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png';
 		ClipsDescendants = true;
 		ElasticBehavior = Enum.ElasticBehavior.Never;
 		Parent = MainSectionInner;
 	});
-
-	-- Update canvas when tabs are added
-	TabArea:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
-		TabArea.CanvasSize = UDim2.new(0, TabArea.AbsoluteCanvasSize.X, 0, 0)
-	end);
 
 	local TabListLayout = Library:Create('UIListLayout', {
 		Padding = UDim.new(0, Config.TabPadding);
@@ -3907,7 +3903,8 @@ function Library:CreateWindow(...)
 	});
 
 	TabListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
-		TabArea.CanvasSize = UDim2.new(0, TabListLayout.AbsoluteContentSize.X, 0, 0)
+		local contentWidth = TabListLayout.AbsoluteContentSize.X
+		TabArea.CanvasSize = UDim2.fromOffset(contentWidth, 0)
 	end);
 
 	local TabContainer = Library:Create('Frame', {
