@@ -3534,6 +3534,11 @@ function Library:CreatePopout(Config)
 		Parent = ScreenGui;
 	});
 
+	Library:Create('UICorner', {
+		CornerRadius = UDim.new(0, 8);
+		Parent = Outer;
+	});
+
 	Library:MakeDraggableOutline(Outer, 25);
 
 	local Inner = Library:Create('Frame', {
@@ -3544,6 +3549,11 @@ function Library:CreatePopout(Config)
 		Size = UDim2.new(1, -2, 1, -2);
 		ZIndex = 1;
 		Parent = Outer;
+	});
+
+	Library:Create('UICorner', {
+		CornerRadius = UDim.new(0, 8);
+		Parent = Inner;
 	});
 
 	Library:AddToRegistry(Inner, {
@@ -3577,6 +3587,11 @@ function Library:CreatePopout(Config)
 		Size = UDim2.new(1, -16, 1, -33);
 		ZIndex = 1;
 		Parent = Inner;
+	});
+
+	Library:Create('UICorner', {
+		CornerRadius = UDim.new(0, 6);
+		Parent = MainSectionOuter;
 	});
 
 	Library:AddToRegistry(MainSectionOuter, {
@@ -3862,11 +3877,18 @@ function Library:CreateWindow(...)
 		BackgroundColor3 = 'BackgroundColor';
 	});
 
-	local TabArea = Library:Create('Frame', {
+	local TabArea = Library:Create('ScrollingFrame', {
 		BackgroundTransparency = 1;
 		Position = UDim2.new(0, 8, 0, 8);
 		Size = UDim2.new(1, -16, 0, 21);
 		ZIndex = 1;
+		CanvasSize = UDim2.new(0, 0, 0, 0);
+		AutomaticCanvasSize = Enum.AutomaticSize.X;
+		ScrollingDirection = Enum.ScrollingDirection.X;
+		ScrollBarThickness = 0;
+		BottomImage = '';
+		TopImage = '';
+		ElasticBehavior = Enum.ElasticBehavior.Never;
 		Parent = MainSectionInner;
 	});
 
@@ -3886,6 +3908,11 @@ function Library:CreateWindow(...)
 		Parent = MainSectionInner;
 	});
 
+
+	Library:Create('UICorner', {
+		CornerRadius = UDim.new(0, 6);
+		Parent = TabContainer;
+	});
 
 	Library:AddToRegistry(TabContainer, {
 		BackgroundColor3 = 'MainColor';
