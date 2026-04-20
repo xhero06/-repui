@@ -231,15 +231,15 @@ local Library = {
     HudRegistry = {};
 
     -- colors and font --
-    FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(28, 28, 28);
-    BackgroundColor = Color3.fromRGB(20, 20, 20);
+    FontColor = Color3.fromRGB(220, 220, 220);
+    MainColor = Color3.fromRGB(15, 15, 15);
+    BackgroundColor = Color3.fromRGB(10, 10, 10);
 
     AccentColor = Color3.fromRGB(0, 85, 255);
-    DisabledAccentColor = Color3.fromRGB(142, 142, 142);
+    DisabledAccentColor = Color3.fromRGB(100, 100, 100);
 
-    OutlineColor = Color3.fromRGB(50, 50, 50);
-    DisabledOutlineColor = Color3.fromRGB(70, 70, 70);
+    OutlineColor = Color3.fromRGB(30, 30, 30);
+    DisabledOutlineColor = Color3.fromRGB(45, 45, 45);
 
     DisabledTextColor = Color3.fromRGB(142, 142, 142);
 
@@ -3574,6 +3574,9 @@ do
                 end
             end
 
+            Button._addonExpanded = false
+            Button._lastClickTime = 0
+
             Button.Outer.InputBegan:Connect(function(Input)
                 if Button.Disabled then
                     return
@@ -3581,6 +3584,23 @@ do
 
                 if not ValidateClick(Input) then return end
                 if Button.Locked then return end
+
+                -- check for addon double-click expand first
+                if Button.Addons and #Button.Addons > 0 then
+                    local now = tick()
+                    if now - Button._lastClickTime < 0.35 then
+                        Button._addonExpanded = not Button._addonExpanded
+                        for _, Addon in next, Button.Addons do
+                            if Addon.DisplayFrame then
+                                Addon.DisplayFrame.Visible = Button._addonExpanded
+                            end
+                        end
+                        Button._lastClickTime = 0
+                        return
+                    else
+                        Button._lastClickTime = now
+                    end
+                end
 
                 if Button.DoubleClick then
                     Library:RemoveFromRegistry(Button.Label)
@@ -4175,6 +4195,30 @@ do
             end
         end
 
+        Toggle._addonExpanded = false
+
+        local function _toggleAddonVisibility()
+            Toggle._addonExpanded = not Toggle._addonExpanded
+            for _, Addon in next, Toggle.Addons do
+                if Addon.DisplayFrame then
+                    Addon.DisplayFrame.Visible = Toggle._addonExpanded
+                end
+            end
+            Groupbox:Resize()
+        end
+
+        -- hide addon DisplayFrames initially (before they are added, hook post-add)
+        local _origToggleSetmeta = nil
+        task.defer(function()
+            for _, Addon in next, Toggle.Addons do
+                if Addon.DisplayFrame then
+                    Addon.DisplayFrame.Visible = false
+                end
+            end
+            Groupbox:Resize()
+        end)
+
+        local _lastClickTime = 0
         ToggleRegion.InputBegan:Connect(function(Input)
             if Toggle.Disabled then
                 return
@@ -4185,8 +4229,17 @@ do
                     if Library:MouseIsOverFrame(Addon.DisplayFrame) then return end
                 end
 
-                Toggle:SetValue(not Toggle.Value) -- Why was it not like this from the start?
-                Library:AttemptSave()
+                local now = tick()
+                if now - _lastClickTime < 0.35 then
+                    -- double click: toggle addon visibility
+                    _toggleAddonVisibility()
+                    _lastClickTime = 0
+                else
+                    -- single click: toggle value
+                    _lastClickTime = now
+                    Toggle:SetValue(not Toggle.Value)
+                    Library:AttemptSave()
+                end
             end
         end)
 
@@ -6575,7 +6628,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create("Frame", {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
+        BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -6585,7 +6638,7 @@ function Library:CreateWindow(...)
 
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = "MainColor";
-        BorderColor3 = "AccentColor";
+        BorderColor3 = "OutlineColor";
     })
 
     -- Icon + Title support
@@ -7612,7 +7665,7 @@ end
             })
 
             local Highlight = Library:Create("Frame", {
-                BackgroundColor3 = Library.AccentColor;
+                BackgroundColor3 = Library.OutlineColor;
                 BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 0, 2);
                 ZIndex = 5;
@@ -7620,7 +7673,7 @@ end
             })
 
             Library:AddToRegistry(Highlight, {
-                BackgroundColor3 = "AccentColor";
+                BackgroundColor3 = "OutlineColor";
             })
 
             -- local GroupboxLabel = 
