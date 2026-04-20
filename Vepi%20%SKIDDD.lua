@@ -3574,9 +3574,6 @@ do
                 end
             end
 
-            Button._addonExpanded = false
-            Button._lastClickTime = 0
-
             Button.Outer.InputBegan:Connect(function(Input)
                 if Button.Disabled then
                     return
@@ -3584,23 +3581,6 @@ do
 
                 if not ValidateClick(Input) then return end
                 if Button.Locked then return end
-
-                -- check for addon double-click expand first
-                if Button.Addons and #Button.Addons > 0 then
-                    local now = tick()
-                    if now - Button._lastClickTime < 0.35 then
-                        Button._addonExpanded = not Button._addonExpanded
-                        for _, Addon in next, Button.Addons do
-                            if Addon.DisplayFrame then
-                                Addon.DisplayFrame.Visible = Button._addonExpanded
-                            end
-                        end
-                        Button._lastClickTime = 0
-                        return
-                    else
-                        Button._lastClickTime = now
-                    end
-                end
 
                 if Button.DoubleClick then
                     Library:RemoveFromRegistry(Button.Label)
@@ -4195,30 +4175,6 @@ do
             end
         end
 
-        Toggle._addonExpanded = false
-
-        local function _toggleAddonVisibility()
-            Toggle._addonExpanded = not Toggle._addonExpanded
-            for _, Addon in next, Toggle.Addons do
-                if Addon.DisplayFrame then
-                    Addon.DisplayFrame.Visible = Toggle._addonExpanded
-                end
-            end
-            Groupbox:Resize()
-        end
-
-        -- hide addon DisplayFrames initially (before they are added, hook post-add)
-        local _origToggleSetmeta = nil
-        task.defer(function()
-            for _, Addon in next, Toggle.Addons do
-                if Addon.DisplayFrame then
-                    Addon.DisplayFrame.Visible = false
-                end
-            end
-            Groupbox:Resize()
-        end)
-
-        local _lastClickTime = 0
         ToggleRegion.InputBegan:Connect(function(Input)
             if Toggle.Disabled then
                 return
@@ -4229,17 +4185,8 @@ do
                     if Library:MouseIsOverFrame(Addon.DisplayFrame) then return end
                 end
 
-                local now = tick()
-                if now - _lastClickTime < 0.35 then
-                    -- double click: toggle addon visibility
-                    _toggleAddonVisibility()
-                    _lastClickTime = 0
-                else
-                    -- single click: toggle value
-                    _lastClickTime = now
-                    Toggle:SetValue(not Toggle.Value)
-                    Library:AttemptSave()
-                end
+                Toggle:SetValue(not Toggle.Value)
+                Library:AttemptSave()
             end
         end)
 
