@@ -231,15 +231,15 @@ local Library = {
     HudRegistry = {};
 
     -- colors and font --
-    FontColor = Color3.fromRGB(220, 220, 220);
-    MainColor = Color3.fromRGB(15, 15, 15);
-    BackgroundColor = Color3.fromRGB(10, 10, 10);
+    FontColor = Color3.fromRGB(255, 255, 255);
+    MainColor = Color3.fromRGB(28, 28, 28);
+    BackgroundColor = Color3.fromRGB(20, 20, 20);
 
-    AccentColor = Color3.fromRGB(0, 85, 255);
-    DisabledAccentColor = Color3.fromRGB(100, 100, 100);
+    AccentColor = Color3.fromRGB(0, 55, 180);
+    DisabledAccentColor = Color3.fromRGB(142, 142, 142);
 
-    OutlineColor = Color3.fromRGB(30, 30, 30);
-    DisabledOutlineColor = Color3.fromRGB(45, 45, 45);
+    OutlineColor = Color3.fromRGB(15, 15, 15);
+    DisabledOutlineColor = Color3.fromRGB(15, 15, 15);
 
     DisabledTextColor = Color3.fromRGB(142, 142, 142);
 
@@ -309,7 +309,7 @@ else
     Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS)
 end
 
-Library.MinSize = if Library.IsMobile then Vector2.new(460, 180) else Vector2.new(460, 280)
+Library.MinSize = if Library.IsMobile then Vector2.new(550, 200) else Vector2.new(550, 300)
 
 --// Functions \\--
 local function ApplyDPIScale(Position)
@@ -468,7 +468,7 @@ function Library:SetDPIScale(value: number)
     assert(type(value) == "number", "Expected type number for DPI scale but got " .. typeof(value))
     
     DPIScale = value / 100
-    Library.MinSize = (if Library.IsMobile then Vector2.new(460, 180) else Vector2.new(460, 280)) * DPIScale
+    Library.MinSize = (if Library.IsMobile then Vector2.new(550, 200) else Vector2.new(550, 300)) * DPIScale
 end
 
 function Library:SafeCallback(Func, ...)
@@ -1123,6 +1123,7 @@ local Templates = { -- TO-DO: do it for missing elements.
     --// Window \\--
     Window = {
         Title = "No Title",
+        IconId = 0,
         AutoShow = false,
         Position = UDim2.fromOffset(175, 50),
         Size = UDim2.fromOffset(0, 0),
@@ -1132,8 +1133,7 @@ local Templates = { -- TO-DO: do it for missing elements.
         NotifySide = "Left",
         ShowCustomCursor = true,
         UnlockMouseWhileOpen = true,
-        Center = false,
-        IconId = 0,
+        Center = false
     },
 
     --// Elements \\--
@@ -4185,7 +4185,7 @@ do
                     if Library:MouseIsOverFrame(Addon.DisplayFrame) then return end
                 end
 
-                Toggle:SetValue(not Toggle.Value)
+                Toggle:SetValue(not Toggle.Value) -- Why was it not like this from the start?
                 Library:AttemptSave()
             end
         end)
@@ -6575,7 +6575,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create("Frame", {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.OutlineColor;
+        BorderColor3 = Library.AccentColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -6585,14 +6585,14 @@ function Library:CreateWindow(...)
 
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = "MainColor";
-        BorderColor3 = "OutlineColor";
+        BorderColor3 = "AccentColor";
     })
 
     -- Icon + Title support
     local iconOffset = 0
     if WindowInfo.IconId and WindowInfo.IconId ~= 0 then
         iconOffset = 22
-        local WindowIcon = Library:Create("ImageLabel", {
+        Library:Create("ImageLabel", {
             Position = UDim2.new(0, 5, 0, 4);
             Size = UDim2.new(0, 17, 0, 17);
             Image = "rbxassetid://" .. tostring(WindowInfo.IconId);
@@ -7612,7 +7612,7 @@ end
             })
 
             local Highlight = Library:Create("Frame", {
-                BackgroundColor3 = Library.OutlineColor;
+                BackgroundColor3 = Library.AccentColor;
                 BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 0, 2);
                 ZIndex = 5;
@@ -7620,7 +7620,7 @@ end
             })
 
             Library:AddToRegistry(Highlight, {
-                BackgroundColor3 = "OutlineColor";
+                BackgroundColor3 = "AccentColor";
             })
 
             -- local GroupboxLabel = 
@@ -7908,7 +7908,7 @@ end
     local Toggled = false
     local Fading = false
     
-    function Library:Toggle(Toggling)
+    function Window:Toggle(Toggling)
         if typeof(Toggling) == "boolean" and Toggling == Toggled then return end
         if Fading then return end
 
@@ -8020,6 +8020,10 @@ end
         task.wait(FadeTime)
         Outer.Visible = Toggled
         Fading = false
+    end
+
+    function Library:Toggle(Toggling)
+        return Window:Toggle(Toggling)
     end
 
     Library:GiveSignal(InputService.InputBegan:Connect(function(Input, Processed) -- :sob:
