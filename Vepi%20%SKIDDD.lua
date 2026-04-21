@@ -232,8 +232,8 @@ local Library = {
 
     -- colors and font --
     FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(28, 28, 28);
-    BackgroundColor = Color3.fromRGB(20, 20, 20);
+    MainColor = Color3.fromRGB(15, 15, 15);
+    BackgroundColor = Color3.fromRGB(10, 10, 10);
 
     AccentColor = Color3.fromRGB(0, 55, 180);
     DisabledAccentColor = Color3.fromRGB(142, 142, 142);
@@ -6575,7 +6575,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create("Frame", {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
+        BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -6585,7 +6585,7 @@ function Library:CreateWindow(...)
 
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = "MainColor";
-        BorderColor3 = "AccentColor";
+        BorderColor3 = "OutlineColor";
     })
 
     -- Icon + Title support
