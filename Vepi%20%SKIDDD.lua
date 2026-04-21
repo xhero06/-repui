@@ -6575,7 +6575,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create("Frame", {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.OutlineColor;
+        BorderColor3 = Library.AccentColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -7609,18 +7609,6 @@ end
 
             Library:AddToRegistry(BoxInner, {
                 BackgroundColor3 = "BackgroundColor";
-            })
-
-            local Highlight = Library:Create("Frame", {
-                BackgroundColor3 = Library.AccentColor;
-                BorderSizePixel = 0;
-                Size = UDim2.new(1, 0, 0, 2);
-                ZIndex = 5;
-                Parent = BoxInner;
-            })
-
-            Library:AddToRegistry(Highlight, {
-                BackgroundColor3 = "AccentColor";
             })
 
             -- local GroupboxLabel = 
