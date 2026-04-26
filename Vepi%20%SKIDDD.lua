@@ -6561,7 +6561,7 @@ function Library:CreateWindow(...)
     local Outer = Library:Create("Frame", {
         AnchorPoint = WindowInfo.AnchorPoint;
         BackgroundColor3 = Color3.new(0, 0, 0);
-        BackgroundTransparency = 0.08;
+        BackgroundTransparency = 0.25;
         BorderSizePixel = 0;
         Position = WindowInfo.Position;
         Size = WindowInfo.Size;
@@ -6576,7 +6576,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create("Frame", {
         BackgroundColor3 = Library.MainColor;
-        BackgroundTransparency = 0.12;
+        BackgroundTransparency = 0.30;
         BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
