@@ -235,7 +235,7 @@ local Library = {
     MainColor = Color3.fromRGB(15, 15, 15);
     BackgroundColor = Color3.fromRGB(10, 10, 10);
 
-    AccentColor = Color3.fromRGB(0, 55, 180);
+    AccentColor = Color3.fromRGB(180, 40, 40);
     DisabledAccentColor = Color3.fromRGB(142, 142, 142);
 
     OutlineColor = Color3.fromRGB(15, 15, 15);
@@ -6561,6 +6561,7 @@ function Library:CreateWindow(...)
     local Outer = Library:Create("Frame", {
         AnchorPoint = WindowInfo.AnchorPoint;
         BackgroundColor3 = Color3.new(0, 0, 0);
+        BackgroundTransparency = 0.08;
         BorderSizePixel = 0;
         Position = WindowInfo.Position;
         Size = WindowInfo.Size;
@@ -6575,6 +6576,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create("Frame", {
         BackgroundColor3 = Library.MainColor;
+        BackgroundTransparency = 0.12;
         BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
