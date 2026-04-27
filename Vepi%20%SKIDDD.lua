@@ -473,17 +473,14 @@ function Library:SetDPIScale(value: number)
 end
 
 function Library:SafeCallback(Func, ...)
-    -- https://github.com/deividcomsono/Obsidian/blob/main/Library.lua#L1100
     if not (Func and typeof(Func) == "function") then
         return
     end
 
     local Result = table.pack(xpcall(Func, function(Error)
-        task.defer(error, debug.traceback(Error, 2))
         if Library.NotifyOnError then
             Library:Notify(Error)
         end
-
         return Error
     end, ...))
 
