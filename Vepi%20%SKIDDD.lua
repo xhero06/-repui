@@ -300,6 +300,7 @@ local Library = {
     ActiveDialog = nil;
 
     ImageManager = CustomImageManager;
+    ShowCursorBinding = string.sub(tostring({}), 10);
 }
 
 if RunService:IsStudio() then
@@ -1123,7 +1124,6 @@ local Templates = { -- TO-DO: do it for missing elements.
     --// Window \\--
     Window = {
         Title = "No Title",
-        IconId = 0,
         AutoShow = false,
         Position = UDim2.fromOffset(175, 50),
         Size = UDim2.fromOffset(0, 0),
@@ -1410,7 +1410,7 @@ do
             })
 
             Library:OnHighlight(KeybindsToggleRegion, KeybindsToggleOuter,
-                { BorderColor3 = "AccentColor" },
+                { BorderColor3 = "OutlineColor" },
                 { BorderColor3 = "Black" },
                 function()
                     return true
@@ -1419,11 +1419,11 @@ do
 
             function KeybindsToggle:Display(State)
                 KeybindsToggleInner.BackgroundColor3 = State and Library.AccentColor or Library.MainColor
-                KeybindsToggleInner.BorderColor3 = State and Library.AccentColorDark or Library.OutlineColor
+                KeybindsToggleInner.BorderColor3 = Library.OutlineColor
                 KeybindsToggleLabel.TextColor3 = State and Library.AccentColor or Library.FontColor
 
                 Library.RegistryMap[KeybindsToggleInner].Properties.BackgroundColor3 = State and "AccentColor" or "MainColor"
-                Library.RegistryMap[KeybindsToggleInner].Properties.BorderColor3 = State and "AccentColorDark" or "OutlineColor"
+                Library.RegistryMap[KeybindsToggleInner].Properties.BorderColor3 = "OutlineColor"
                 Library.RegistryMap[KeybindsToggleLabel].Properties.TextColor3 = State and "AccentColor" or "FontColor"
             end
 
@@ -2726,7 +2726,7 @@ do
         })
 
         Library:OnHighlight(DropdownOuter, DropdownOuter,
-            { BorderColor3 = "AccentColor" },
+            { BorderColor3 = "OutlineColor" },
             { BorderColor3 = "Black" },
             function()
                 return not Dropdown.Disabled
@@ -2910,7 +2910,7 @@ do
                 })
 
                 Library:OnHighlight(Button, Button,
-                    { BorderColor3 = IsDisabled and "DisabledAccentColor" or "AccentColor", ZIndex = 24 },
+                    { BorderColor3 = "OutlineColor", ZIndex = 24 },
                     { BorderColor3 = "OutlineColor", ZIndex = 23 }
                 )
 
@@ -3535,7 +3535,7 @@ do
             })
 
             Library:OnHighlight(Outer, Outer,
-                { BorderColor3 = "AccentColor" },
+                { BorderColor3 = "OutlineColor" },
                 { BorderColor3 = "Black" }
             )
 
@@ -3792,7 +3792,7 @@ do
         })
 
         Library:OnHighlight(TextBoxOuter, TextBoxOuter,
-            { BorderColor3 = "AccentColor" },
+            { BorderColor3 = "OutlineColor" },
             { BorderColor3 = "Black" }
         )
 
@@ -4065,7 +4065,7 @@ do
         })
 
         Library:OnHighlight(ToggleRegion, ToggleOuter,
-            { BorderColor3 = "AccentColor" },
+            { BorderColor3 = "OutlineColor" },
             { BorderColor3 = "Black" },
             function()
                 if Toggle.Disabled then
@@ -4105,10 +4105,10 @@ do
             ToggleLabel.TextColor3 = Toggle.Risky and Library.RiskColor or Color3.new(1, 1, 1)
 
             ToggleInner.BackgroundColor3 = Toggle.Value and Library.AccentColor or Library.MainColor
-            ToggleInner.BorderColor3 = Toggle.Value and Library.AccentColorDark or Library.OutlineColor
+            ToggleInner.BorderColor3 = Library.OutlineColor
 
             Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and "AccentColor" or "MainColor"
-            Library.RegistryMap[ToggleInner].Properties.BorderColor3 = Toggle.Value and "AccentColorDark" or "OutlineColor"
+            Library.RegistryMap[ToggleInner].Properties.BorderColor3 = "OutlineColor"
 
             Library.RegistryMap[ToggleLabel].Properties.TextColor3 = Toggle.Risky and "RiskColor" or nil
         end
@@ -4296,7 +4296,7 @@ do
 
         local Fill = Library:Create("Frame", {
             BackgroundColor3 = Library.AccentColor;
-            BorderColor3 = Library.AccentColorDark;
+            BorderColor3 = Library.OutlineColor;
             Size = UDim2.new(0, 0, 1, 0);
             ZIndex = 7;
             Parent = SliderInner;
@@ -4304,7 +4304,7 @@ do
 
         Library:AddToRegistry(Fill, {
             BackgroundColor3 = "AccentColor";
-            BorderColor3 = "AccentColorDark";
+            BorderColor3 = "OutlineColor";
         })
 
         local HideBorderRight = Library:Create("Frame", {
@@ -4330,7 +4330,7 @@ do
         })
 
         Library:OnHighlight(SliderOuter, SliderOuter,
-            { BorderColor3 = "AccentColor" },
+            { BorderColor3 = "OutlineColor" },
             { BorderColor3 = "Black" },
             function()
                 return not Slider.Disabled
@@ -4348,15 +4348,15 @@ do
             end
             DisplayLabel.TextColor3 = Slider.Disabled and Library.DisabledAccentColor or Color3.new(1, 1, 1)
 
-            HideBorderRight.BackgroundColor3 = Slider.Disabled and Library.DisabledAccentColor or Library.AccentColor
+            HideBorderRight.BackgroundColor3 = Library.OutlineColor
 
-            Fill.BackgroundColor3 = Slider.Disabled and Library.DisabledAccentColor or Library.AccentColor
-            Fill.BorderColor3 = Slider.Disabled and Library.DisabledOutlineColor or Library.AccentColorDark
+            Fill.BackgroundColor3 = Library.OutlineColor
+            Fill.BorderColor3 = Library.OutlineColor
 
             Library.RegistryMap[HideBorderRight].Properties.BackgroundColor3 = Slider.Disabled and "DisabledAccentColor" or "AccentColor"
 
             Library.RegistryMap[Fill].Properties.BackgroundColor3 = Slider.Disabled and "DisabledAccentColor" or "AccentColor"
-            Library.RegistryMap[Fill].Properties.BorderColor3 = Slider.Disabled and "DisabledOutlineColor" or "AccentColorDark"
+            Library.RegistryMap[Fill].Properties.BorderColor3 = "OutlineColor"
         end
         
         function Slider:Display()
@@ -4738,7 +4738,7 @@ do
         })
 
         Library:OnHighlight(DropdownOuter, DropdownOuter,
-            { BorderColor3 = "AccentColor" },
+            { BorderColor3 = "OutlineColor" },
             { BorderColor3 = "Black" },
             function()
                 return not Dropdown.Disabled
@@ -4913,7 +4913,7 @@ do
                 })
 
                 Library:OnHighlight(Button, Button,
-                    { BorderColor3 = IsDisabled and "DisabledAccentColor" or "AccentColor", ZIndex = 24 },
+                    { BorderColor3 = "OutlineColor", ZIndex = 24 },
                     { BorderColor3 = "OutlineColor", ZIndex = 23 }
                 )
 
@@ -6019,17 +6019,7 @@ do
             BackgroundColor3 = "BackgroundColor";
         })
 
-        local Highlight = Library:Create("Frame", {
-            BackgroundColor3 = Library.AccentColor;
-            BorderSizePixel = 0;
-            Size = UDim2.new(1, 0, 0, 2);
-            ZIndex = 5;
-            Parent = BoxInner;
-        })
 
-        Library:AddToRegistry(Highlight, {
-            BackgroundColor3 = "AccentColor";
-        })
 
         local Container = Library:Create("Frame", {
             BackgroundTransparency = 1;
@@ -6542,7 +6532,7 @@ function Library:CreateWindow(...)
     end
 
     if WindowInfo.Size == UDim2.fromOffset(0, 0) then
-        WindowInfo.Size = if Library.IsMobile then UDim2.fromOffset(460, math.clamp(ViewportSize.Y - 35, 180, 480)) else UDim2.fromOffset(460, 480)
+        WindowInfo.Size = if Library.IsMobile then UDim2.fromOffset(550, math.clamp(ViewportSize.Y - 35, 200, 600)) else UDim2.fromOffset(550, 600)
     end
 
     Library.NotifySide = WindowInfo.NotifySide
@@ -6576,7 +6566,6 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create("Frame", {
         BackgroundColor3 = Library.MainColor;
-        BackgroundTransparency = 0.30;
         BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
@@ -6590,23 +6579,8 @@ function Library:CreateWindow(...)
         BorderColor3 = "OutlineColor";
     })
 
-    -- Icon + Title support
-    local iconOffset = 0
-    if WindowInfo.IconId and WindowInfo.IconId ~= 0 then
-        iconOffset = 22
-        Library:Create("ImageLabel", {
-            Position = UDim2.new(0, 5, 0, 4);
-            Size = UDim2.new(0, 17, 0, 17);
-            Image = "rbxassetid://" .. tostring(WindowInfo.IconId);
-            BackgroundTransparency = 1;
-            ScaleType = Enum.ScaleType.Fit;
-            ZIndex = 1;
-            Parent = Inner;
-        })
-    end
-
     local WindowLabel = Library:CreateLabel({
-        Position = UDim2.new(0, 7 + iconOffset, 0, 0);
+        Position = UDim2.new(0, 7, 0, 0);
         Size = UDim2.new(0, 0, 0, 25);
         Text = WindowInfo.Title or "";
         TextXAlignment = Enum.TextXAlignment.Left;
@@ -6792,7 +6766,7 @@ function Library:CreateWindow(...)
 
         local DialogInner = Library:Create("Frame", {
             BackgroundColor3 = Library.MainColor,
-            BorderColor3 = Library.AccentColor,
+            BorderColor3 = Library.OutlineColor,
             BorderMode = Enum.BorderMode.Inset,
             Size = UDim2.fromScale(1, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
@@ -6806,7 +6780,7 @@ function Library:CreateWindow(...)
 
         Library:AddToRegistry(DialogInner, {
             BackgroundColor3 = "MainColor",
-            BorderColor3 = "AccentColor",
+            BorderColor3 = "OutlineColor",
         })
 
         local InnerContainer = Library:Create("Frame", {
@@ -7069,7 +7043,7 @@ function Library:CreateWindow(...)
             local DestructiveColor = Color3.fromRGB(220, 38, 38)
 
             if Variant == "Primary" then
-                BtnBorderColor = Library.AccentColor
+                BtnBorderColor = Library.OutlineColor
             elseif Variant == "Secondary" then
                 BtnInnerColor = Library.BackgroundColor
                 BtnBorderColor = Library.OutlineColor
@@ -7106,7 +7080,7 @@ function Library:CreateWindow(...)
             })
 
             if Variant == "Primary" then
-                Library:AddToRegistry(TextBtn, { BackgroundColor3 = "MainColor", BorderColor3 = "AccentColor" })
+                Library:AddToRegistry(TextBtn, { BackgroundColor3 = "MainColor", BorderColor3 = "OutlineColor" })
             elseif Variant == "Secondary" then
                 Library:AddToRegistry(TextBtn, { BackgroundColor3 = "BackgroundColor", BorderColor3 = "OutlineColor" })
             elseif Variant == "Ghost" then
@@ -7122,7 +7096,7 @@ function Library:CreateWindow(...)
                 Parent = TextBtn,
             })
 
-            local HighlightBorderColor = Variant == "Destructive" and DestructiveColor or Library.AccentColor
+            local HighlightBorderColor = Variant == "Destructive" and DestructiveColor or Library.OutlineColor
             ButtonContainer.MouseEnter:Connect(function()
                 ButtonContainer.BorderColor3 = HighlightBorderColor
             end)
@@ -7613,6 +7587,18 @@ end
                 BackgroundColor3 = "BackgroundColor";
             })
 
+            local Highlight = Library:Create("Frame", {
+                BackgroundColor3 = Library.AccentColor;
+                BorderSizePixel = 0;
+                Size = UDim2.new(1, 0, 0, 2);
+                ZIndex = 5;
+                Parent = BoxInner;
+            })
+
+            Library:AddToRegistry(Highlight, {
+                BackgroundColor3 = "AccentColor";
+            })
+
             -- local GroupboxLabel = 
             Library:CreateLabel({
                 Size = UDim2.new(1, 0, 0, 18);
@@ -7929,8 +7915,9 @@ end
                     CursorOutline.Visible = Library.ShowCustomCursor
                     
                     local OldMouseIconState = InputService.MouseIconEnabled
-                    pcall(function() RunService:UnbindFromRenderStep("LinoriaCursor") end)
-                    RunService:BindToRenderStep("LinoriaCursor", Enum.RenderPriority.Camera.Value - 1, function()
+                    local ShowCursorBinding = Library.ShowCursorBinding
+                    pcall(function() RunService:UnbindFromRenderStep(ShowCursorBinding) end)
+                    RunService:BindToRenderStep(ShowCursorBinding, Enum.RenderPriority.Camera.Value - 1, function()
                         InputService.MouseIconEnabled = not Library.ShowCustomCursor
                         local mPos = InputService:GetMouseLocation()
                         local X, Y = mPos.X, mPos.Y
@@ -7948,7 +7935,7 @@ end
                             InputService.MouseIconEnabled = OldMouseIconState
                             if Cursor then Cursor:Destroy() end
                             if CursorOutline then CursorOutline:Destroy() end
-                            RunService:UnbindFromRenderStep("LinoriaCursor")
+                            RunService:UnbindFromRenderStep(ShowCursorBinding)
                         end
                     end)
                 end))
@@ -8043,7 +8030,7 @@ end
     
         local ToggleUIInner = Library:Create("Frame", {
             BackgroundColor3 = Library.MainColor;
-            BorderColor3 = Library.AccentColor;
+            BorderColor3 = Library.OutlineColor;
             BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 201;
@@ -8051,7 +8038,7 @@ end
         })
     
         Library:AddToRegistry(ToggleUIInner, {
-            BorderColor3 = "AccentColor";
+            BorderColor3 = "OutlineColor";
         })
     
         local ToggleUIInnerFrame = Library:Create("Frame", {
@@ -8113,7 +8100,7 @@ end
     
         local LockUIInner = Library:Create("Frame", {
             BackgroundColor3 = Library.MainColor;
-            BorderColor3 = Library.AccentColor;
+            BorderColor3 = Library.OutlineColor;
             BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 201;
@@ -8121,7 +8108,7 @@ end
         })
     
         Library:AddToRegistry(LockUIInner, {
-            BorderColor3 = "AccentColor";
+            BorderColor3 = "OutlineColor";
         })
     
         local LockUIInnerFrame = Library:Create("Frame", {
